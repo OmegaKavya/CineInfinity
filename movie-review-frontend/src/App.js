@@ -91,7 +91,7 @@ export default function App() {
           items={hollywood.items}
           loading={hollywood.loading}
           error={hollywood.error}
-          onSelect={(film) => search.openMovieByTitle?.(film.title)}
+          onSelect={(film) => search.openMovieByTitle?.(film.title, film.year)}
         />
 
         <Catalogue
@@ -100,7 +100,7 @@ export default function App() {
           items={bollywood.items}
           loading={bollywood.loading}
           error={bollywood.error}
-          onSelect={(film) => search.openMovieByTitle?.(film.title)}
+          onSelect={(film) => search.openMovieByTitle?.(film.title, film.year)}
         />
       </main>
     </div>

@@ -53,15 +53,33 @@ router.get("/tmdb/search", validateMovieQuery, async (req, res) => {
   }
 });
 
+// An optional ?year= disambiguates titles that belong to more than one film.
+// Without it OMDb returns its own preferred match, which is how clicking the
+// 2019 Lion King poster opened the 1994 film: different films, different IMDb
+// ids, and reviews are keyed by that id, so the review landed on the wrong
+// one. Verified against OMDb: "The Lion King" alone returns tt0110357 (1994),
+// with y=2019 it returns tt6105098.
 router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
   try {
     const { title } = req.params;
-    const response = await omdb.get("/", { params: { t: title, apikey: process.env.OMDB_API_KEY } });
-    
+    const year = /^\d{4}$/.test(String(req.query.year || "")) ? req.query.year : undefined;
+
+    const lookup = (params) =>
+      omdb.get("/", { params: { t: title, apikey: process.env.OMDB_API_KEY, ...params } });
+
+    let response = await lookup(year ? { y: year } : {});
+
+    // A year that OMDb disagrees with should not turn a findable film into a
+    // 404, so fall back to the title alone and let the client see which year
+    // actually came back.
+    if (year && response.data.Response === "False") {
+      response = await lookup({});
+    }
+
     if (response.data.Response === "False") {
       return res.status(404).json({ error: "Movie not found" });
     }
-    
+
     res.json(response.data);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch movie details from OMDb" });

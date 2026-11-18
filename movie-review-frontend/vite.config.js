@@ -31,6 +31,7 @@ export default defineConfig({
     // jsdom stays in devDependencies so it can be swapped back if some API
     // happy-dom lacks is ever required.
     environment: "happy-dom",
+    setupFiles: ["./src/setupTests.js"],
     // Pure-logic suites opt out of a DOM entirely with a
     // `// @vitest-environment node` docblock at the top of the file.
   },

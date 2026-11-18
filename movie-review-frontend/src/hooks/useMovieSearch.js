@@ -116,19 +116,26 @@ export function useMovieSearch() {
   }, [query, cancelFetch]);
 
   /**
-   * Open a film given only its title.
+   * Open a film given its title, and its year where the catalogue knows it.
    *
    * The catalogue rows come from TMDb, but reviews are keyed by IMDb id, so
-   * selecting a poster has to resolve the title through OMDb first. Without
-   * this, clicking a catalogue card would have nothing to attach reviews to.
+   * selecting a poster has to resolve the title through OMDb first.
+   *
+   * The year is not optional decoration. Titles are reused: OMDb answers
+   * "The Lion King" with the 1994 film (tt0110357) and "Aladdin" with the
+   * 1992 one, so clicking either 2019 poster opened the wrong film and any
+   * review written there was filed against the wrong IMDb id. TMDb gives us
+   * the year on every card; passing it through is the whole fix.
    */
   const openMovieByTitle = useCallback(
-    async (title) => {
+    async (title, year) => {
       if (!title) return;
       cancelFetch();
       setSearching(true);
       try {
-        const { data } = await api.get(`/movies/omdb/${encodeURIComponent(title)}`);
+        const { data } = await api.get(`/movies/omdb/${encodeURIComponent(title)}`, {
+          params: year ? { year } : undefined,
+        });
         if (data?.Title) {
           setMovie(data);
           setError('');
