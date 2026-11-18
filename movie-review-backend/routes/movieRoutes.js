@@ -18,6 +18,41 @@ router.get("/omdb/details", validateMovieQuery, async (req, res) => {
   }
 });
 
+// Express matches routes in declaration order, so every literal path has to
+// be declared before the ":title" patterns below. Previously "/omdb/search"
+// sat after "/omdb/:title" and was unreachable: a search request matched the
+// detail route with title="search", and OMDb was asked for a film called
+// "search".
+router.get("/omdb/search", validateMovieQuery, async (req, res) => {
+  try {
+    const { query } = req.query;
+    const response = await omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } });
+    
+    if (response.data.Response === "False") {
+      return res.status(404).json({ error: "No movies found" });
+    }
+    
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch movie suggestions from OMDb" });
+  }
+});
+
+router.get("/tmdb/search", validateMovieQuery, async (req, res) => {
+  try {
+    const { query } = req.query;
+    const response = await tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } });
+
+    if (!response.data.results || response.data.results.length === 0) {
+      return res.status(404).json({ error: "No movies found" });
+    }
+
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch movie suggestions from TMDb" });
+  }
+});
+
 router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
   try {
     const { title } = req.params;
@@ -50,36 +85,8 @@ router.get("/tmdb/:title", validateMovieQuery, async (req, res) => {
 });
 
 // Fetch movie suggestions from OMDB API
-router.get("/omdb/search", validateMovieQuery, async (req, res) => {
-  try {
-    const { query } = req.query;
-    const response = await omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } });
-    
-    if (response.data.Response === "False") {
-      return res.status(404).json({ error: "No movies found" });
-    }
-    
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie suggestions from OMDb" });
-  }
-});
 
 // Fetch movie suggestions from TMDB API
-router.get("/tmdb/search", validateMovieQuery, async (req, res) => {
-  try {
-    const { query } = req.query;
-    const response = await tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } });
-
-    if (!response.data.results || response.data.results.length === 0) {
-      return res.status(404).json({ error: "No movies found" });
-    }
-
-    res.json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie suggestions from TMDb" });
-  }
-});
 
 // Unified endpoint to fetch movie suggestions from both OMDb and TMDb
 router.get("/search", validateMovieQuery, async (req, res) => {

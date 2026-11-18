@@ -15,7 +15,10 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
+    // Production shipped a 2 MB .map alongside the bundle, which hands anyone
+    // opening devtools the original source: file names, comments and all.
+    // Dev builds still have full source maps; only the deployed one drops them.
+    sourcemap: false,
   },
   test: {
     // happy-dom rather than jsdom.
