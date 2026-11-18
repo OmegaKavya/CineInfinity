@@ -1,0 +1,221 @@
+/* Movie Card Styling */
+.movie-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(255, 0, 127, 0.2), rgba(0, 0, 0, 0.8));
+  border-radius: 20px;
+  padding: 25px;
+  width: 90%;
+  max-width: 1000px;
+  margin: 20px auto;
+  box-shadow: 0 10px 30px rgba(255, 0, 127, 0.5);
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.movie-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 15px 40px rgba(255, 0, 127, 0.7);
+}
+
+/* Modernized Movie Card */
+.movie-card.modern-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #1e1e2f, #2a2a3b);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  max-width: 400px;
+  margin: 20px auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.movie-card.modern-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Movie Poster */
+.movie-poster {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease-in-out;
+}
+
+.movie-poster:hover {
+  transform: scale(1.05);
+}
+
+/* Movie Details */
+.movie-details {
+  text-align: center;
+}
+
+.movie-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.movie-genre,
+.movie-rating,
+.movie-plot {
+  margin: 5px 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Title */
+.movie-title {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+}
+
+/* Genre */
+.movie-genre {
+  font-size: 18px;
+  margin-bottom: 5px;
+  color: #ffb3d9;
+}
+
+/* Rating */
+.movie-rating {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff007f;
+  margin-bottom: 10px;
+}
+
+/* Plot */
+.movie-plot {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+/* Buttons */
+.movie-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.modern-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: #ff007f;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+
+.modern-button:hover {
+  background: #e60073;
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+}
+
+.learn-more {
+  background: #007bff;
+}
+
+.learn-more:hover {
+  background: #0056b3;
+}
+
+.watch-trailer {
+  background: #28a745;
+}
+
+.watch-trailer:hover {
+  background: #218838;
+}
+
+/* Learn More Button */
+.learn-more-button {
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  background: linear-gradient(90deg, #ff007f, #7300ff);
+  color: white;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.learn-more-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px #ff007f;
+}
+
+/* Search Bar Container - Added More Spacing */
+.search-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 60px; /* Increased spacing after the search bar */
+}
+
+/* Search Input */
+.search-input {
+  width: 450px; /* Increased width */
+  padding: 14px;
+  border-radius: 30px;
+  border: 2px solid #ff007f;
+  font-size: 18px;
+  outline: none;
+  transition: 0.3s ease-in-out;
+}
+
+/* Search Button */
+.search-button {
+  margin-left: 15px;
+  padding: 14px 25px;
+  font-size: 18px;
+  border-radius: 30px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .movie-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .movie-card.modern-card {
+    max-width: 90%;
+    padding: 15px;
+  }
+
+  .movie-poster {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .movie-details {
+    padding-left: 0;
+  }
+
+  .movie-title {
+    font-size: 1.2rem;
+  }
+
+  .modern-button {
+    font-size: 0.9rem;
+    padding: 8px 15px;
+  }
+}
