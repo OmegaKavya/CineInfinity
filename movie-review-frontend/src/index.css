@@ -1,3 +1,38 @@
+/* ===================================================================
+   Design tokens.
+   These are the colours already used across the app, lifted out of the
+   stylesheets rather than chosen fresh, so nothing changes appearance.
+   #ff007f and #7300ff appear 46 and 22 times respectively; having them
+   in one place is what makes a theme change possible at all.
+   =================================================================== */
+
+:root {
+  /* brand */
+  --neon: #ff007f;
+  --neon-deep: #e60073;
+  --neon-soft: #ffb3d9;
+  --violet: #7300ff;
+  --brand-gradient: linear-gradient(135deg, var(--neon), var(--violet));
+
+  /* surfaces, darkest to lightest */
+  --bg: #121212;
+  --surface-1: #1a1a2e;
+  --surface-2: #16213e;
+  --surface-3: #0f3460;
+  --panel: #1e1e2f;
+  --panel-raised: #2a2a3b;
+
+  /* ink */
+  --ink: #ffffff;
+  --ink-dim: #ccc;
+
+  /* effects */
+  --glow-neon: 0 0 24px rgba(255, 0, 127, 0.45);
+  --glow-soft: 0 0 40px -12px rgba(255, 0, 127, 0.6);
+  --radius-pill: 999px;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

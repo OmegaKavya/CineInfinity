@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import MovieCard from './components/MovieCard';
 import Navbar from './components/Navbar';
-import HeroSlider from './components/HeroSlider';
-import SearchBar from './components/SearchBar';
+import Hero from './components/Hero';
 import ReviewSection from './components/ReviewSection';
 import Catalogue from './components/Catalogue';
 import WatchOrder from './components/WatchOrder';
@@ -23,6 +22,12 @@ import './App.css';
  * What is left is composition. Authentication and theme live in context,
  * search, reviews and catalogues in hooks, everything visible in components
  * that take props.
+ *
+ * The whole catalogue used to sit behind a Google sign-in, so a visitor saw
+ * one card in an empty page and nothing else. Browsing is open now and
+ * authentication guards only what it has to: writing a review. That is how
+ * every comparable site works, and it is the difference between a product
+ * someone can look at and one they bounce off.
  */
 export default function App() {
   const { user, loading, signIn } = useAuth();
@@ -50,85 +55,54 @@ export default function App() {
     <div className="app-container">
       <Navbar search={search} />
 
-      {!user ? (
-        <div className="login-page fade-in">
-          <HeroSlider />
-          <div className="overlay" />
-          <div className="login-content">
-            <h1>Welcome to CineInfinity 🎬</h1>
-            <p>Reviews, ratings, and an answer to &ldquo;what order do I watch this in?&rdquo;</p>
-            <button type="button" className="auth-button pulse-effect" onClick={signIn}>
-              Sign in to continue
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <section className="search-section smooth-scroll">
-            <h2 className="search-title">Find a film</h2>
-            <div className="search-container">
-              <SearchBar
-                search={search}
-                className="search-input"
-                id="main-search"
-                placeholder="🔍 Search for a film…"
-              />
-              <button
-                type="button"
-                className="search-button"
-                onClick={search.searchByTitle}
-                disabled={search.searching}
-              >
-                {search.searching ? 'Searching…' : '🎥 Find'}
-              </button>
-            </div>
+      <Hero search={search} signedIn={Boolean(user)} onSignIn={signIn} />
+
+      <main className="app-main">
+        {search.error && (
+          <p className="error-text" role="alert">{search.error}</p>
+        )}
+
+        {search.movie && (
+          <section className="result-section" aria-label="Search result">
+            <MovieCard movie={search.movie} />
+            <ReviewSection movieId={search.movie.imdbID} />
           </section>
+        )}
 
-          {search.error && (
-            <p className="error-text" role="alert">{search.error}</p>
-          )}
+        {/* Anime leads. It is the only catalogue here that answers a
+            question the others cannot, so it gets the top slot. */}
+        <Catalogue
+          title="Anime"
+          subtitle="Pick a series to see what order to watch it in."
+          items={anime.items}
+          loading={anime.loading}
+          error={anime.error}
+          onSelect={setFranchise}
+          spotlight
+        />
 
-          {search.movie && (
-            <>
-              <MovieCard movie={search.movie} />
-              <ReviewSection movieId={search.movie.imdbID} />
-            </>
-          )}
+        {franchise && (
+          <WatchOrder anime={franchise} onClose={() => setFranchise(null)} />
+        )}
 
-          {/* Anime leads. It is the only catalogue here that answers a
-              question the others cannot, so it gets the top slot. */}
-          <Catalogue
-            title="Anime"
-            subtitle="Pick a series to see what order to watch it in."
-            items={anime.items}
-            loading={anime.loading}
-            error={anime.error}
-            onSelect={setFranchise}
-          />
+        <Catalogue
+          title="Hollywood"
+          subtitle="Popular English-language cinema."
+          items={hollywood.items}
+          loading={hollywood.loading}
+          error={hollywood.error}
+          onSelect={(film) => search.openMovieByTitle?.(film.title)}
+        />
 
-          {franchise && (
-            <WatchOrder anime={franchise} onClose={() => setFranchise(null)} />
-          )}
-
-          <Catalogue
-            title="Hollywood"
-            subtitle="Popular English-language cinema."
-            items={hollywood.items}
-            loading={hollywood.loading}
-            error={hollywood.error}
-            onSelect={(film) => search.openMovieByTitle?.(film.title)}
-          />
-
-          <Catalogue
-            title="Bollywood"
-            subtitle="Popular Hindi-language cinema."
-            items={bollywood.items}
-            loading={bollywood.loading}
-            error={bollywood.error}
-            onSelect={(film) => search.openMovieByTitle?.(film.title)}
-          />
-        </>
-      )}
+        <Catalogue
+          title="Bollywood"
+          subtitle="Popular Hindi-language cinema."
+          items={bollywood.items}
+          loading={bollywood.loading}
+          error={bollywood.error}
+          onSelect={(film) => search.openMovieByTitle?.(film.title)}
+        />
+      </main>
     </div>
   );
 }

@@ -855,3 +855,246 @@ button:hover {
 @media (max-width: 600px) {
   .poster { flex-basis: 128px; }
 }
+
+/* ===================================================================
+   Hero
+   Full-bleed crossfading backdrops with the search over them. Uses the
+   brand tokens from index.css, so the magenta here is the same magenta
+   as everywhere else rather than another hard-coded hex.
+   =================================================================== */
+
+.hero {
+  position: relative;
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 5vw, 4rem) 0;
+}
+
+.hero-stage {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity 1.4s var(--ease-out), transform 7s linear;
+}
+
+.hero-slide.is-active {
+  opacity: 1;
+  /* A slow push in gives the still image a sense of motion without the
+     page lurching. Paired with the crossfade it reads as cinema. */
+  transform: scale(1);
+}
+
+/* Two layers: a vertical fade so text at the bottom always has contrast,
+   and a brand wash so the backdrops sit in the product's palette. */
+.hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to top, var(--bg) 2%, rgba(18, 18, 18, 0.72) 38%, rgba(18, 18, 18, 0.25) 100%),
+    linear-gradient(115deg, rgba(255, 0, 127, 0.22), transparent 45%, rgba(115, 0, 255, 0.28));
+}
+
+.hero-content {
+  position: relative;
+  max-width: 54rem;
+  padding-bottom: 1.5rem;
+}
+
+.hero-eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neon-soft);
+  margin-bottom: 0.9rem;
+}
+
+.hero-title {
+  font-size: clamp(2.1rem, 5.6vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  margin-bottom: 0.9rem;
+  background: linear-gradient(120deg, var(--ink) 35%, var(--neon) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-wrap: balance;
+}
+
+.hero-sub {
+  font-size: clamp(0.98rem, 1.5vw, 1.12rem);
+  color: var(--ink-dim);
+  max-width: 46ch;
+  margin-bottom: 1.6rem;
+}
+
+/* ---- search over the hero ---- */
+
+.hero-search {
+  display: flex;
+  gap: 0.6rem;
+  max-width: 38rem;
+  margin-bottom: 1rem;
+}
+
+.hero-search > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-search-input,
+.hero-search input {
+  width: 100%;
+  padding: 0.95rem 1.2rem;
+  font-size: 1rem;
+  color: var(--ink);
+  background: rgba(18, 18, 18, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.hero-search input::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-search input:focus {
+  outline: none;
+  border-color: var(--neon);
+  box-shadow: var(--glow-neon);
+}
+
+.hero-search-button {
+  padding: 0.95rem 1.9rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--brand-gradient);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.hero-search-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-soft);
+}
+
+.hero-search-button:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.hero-note {
+  font-size: 0.92rem;
+  color: var(--ink-dim);
+}
+
+.hero-link {
+  font: inherit;
+  color: var(--neon);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid currentColor;
+}
+
+/* ---- caption and dots ---- */
+
+.hero-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.hero-caption {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-dots {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.hero-dot {
+  width: 26px;
+  height: 3px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.28);
+  transition: background 0.25s var(--ease-out), width 0.25s var(--ease-out);
+}
+
+.hero-dot:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.hero-dot.is-active {
+  width: 42px;
+  background: var(--neon);
+  box-shadow: var(--glow-neon);
+}
+
+/* ---- page body ---- */
+
+.app-main {
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 5vw, 4rem) 4rem;
+}
+
+.result-section {
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    min-height: 64vh;
+  }
+  .hero-search {
+    flex-direction: column;
+  }
+  .hero-search-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    transition: none;
+    transform: none;
+  }
+  .hero-slide.is-active {
+    transform: none;
+  }
+}
+
+.hero-year {
+  margin-left: 0.6rem;
+  color: var(--neon);
+  letter-spacing: 0.1em;
+}

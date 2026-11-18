@@ -18,8 +18,18 @@ if (!baseURL) {
   );
 }
 
+/**
+ * Every route is mounted under /api on the server (/api/movies, /api/reviews,
+ * /api/auth) while the calling code asks for '/movies/...'. That mismatch made
+ * every request 404. The prefix belongs here rather than in each call.
+ *
+ * A deployment whose variable already ends in /api still works: the suffix is
+ * stripped before being re-added, so both forms resolve to the same base.
+ */
+const origin = baseURL.replace(/\/+$/, '').replace(/\/api$/, '');
+
 export const api = axios.create({
-  baseURL: baseURL.replace(/\/+$/, ''),
+  baseURL: `${origin}/api`,
   timeout: 15000,
 });
 

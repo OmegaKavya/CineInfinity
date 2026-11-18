@@ -43,7 +43,7 @@ export default function Navbar({ search }) {
       <h1 className="logo">CineInfinity 🎬</h1>
 
       <div className="navbar-features">
-        {user && <SearchBar search={search} className="navbar-search" id="navbar-search" />}
+        <SearchBar search={search} className="navbar-search" id="navbar-search" />
 
         <button
           className="dark-mode-toggle"

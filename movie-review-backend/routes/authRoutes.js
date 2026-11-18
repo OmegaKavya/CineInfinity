@@ -1,5 +1,5 @@
 const express = require("express");
-const admin = require("../config/firebase");
+const { auth } = require("../config/firebase");
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.post("/login", async (req, res) => {
   const { token } = req.body;
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const decodedToken = await auth.verifyIdToken(token);
     const user = { uid: decodedToken.uid, email: decodedToken.email };
 
     // Keep the response contract compatible for existing callers.
