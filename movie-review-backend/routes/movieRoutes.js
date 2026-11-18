@@ -112,4 +112,74 @@ router.get("/search", validateMovieQuery, async (req, res) => {
   }
 });
 
+/**
+ * Browse a catalogue, rather than search for one title.
+ *
+ * The frontend's three sections need lists of films to show before anyone has
+ * typed anything, and every existing route here requires a query. TMDb's
+ * discover endpoint does this, filtered by original language, which is what
+ * actually separates a Hollywood catalogue from a Bollywood one - region
+ * codes describe where a film was released, not what it is.
+ *
+ * Anime is deliberately absent: the frontend fetches it from AniList, whose
+ * API needs no key, allows browser requests, and carries the relation edges
+ * the watch-order feature depends on. Proxying it here would add a hop for
+ * nothing.
+ */
+const CATALOGUES = {
+  hollywood: { with_original_language: "en", sort_by: "popularity.desc" },
+  bollywood: { with_original_language: "hi", sort_by: "popularity.desc" },
+};
+
+router.get("/discover/:catalogue", async (req, res) => {
+  const preset = CATALOGUES[String(req.params.catalogue).toLowerCase()];
+  if (!preset) {
+    return res.status(400).json({
+      error: `Unknown catalogue. Choose one of: ${Object.keys(CATALOGUES).join(", ")}.`,
+    });
+  }
+
+  const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 50);
+
+  try {
+    const response = await tmdb.get("/discover/movie", {
+      params: {
+        ...preset,
+        page,
+        include_adult: false,
+        "vote_count.gte": 50, // keeps the list to films enough people have seen
+        api_key: process.env.TMDB_API_KEY,
+      },
+    });
+
+    // Return only what the cards render. The raw TMDb payload is roughly ten
+    // times this size, and shipping fields nobody reads is just bandwidth.
+    res.json({
+      page: response.data.page,
+      totalPages: Math.min(response.data.total_pages || 1, 50),
+      results: (response.data.results || []).map((film) => ({
+        id: film.id,
+        title: film.title,
+        overview: film.overview,
+        year: (film.release_date || "").slice(0, 4),
+        rating: film.vote_average,
+        poster: film.poster_path
+          ? `https://image.tmdb.org/t/p/w500${film.poster_path}`
+          : null,
+        backdrop: film.backdrop_path
+          ? `https://image.tmdb.org/t/p/original${film.backdrop_path}`
+          : null,
+      })),
+    });
+  } catch (error) {
+    const status = error.response?.status === 401 ? 500 : 502;
+    res.status(status).json({
+      error:
+        error.response?.status === 401
+          ? "TMDB_API_KEY is missing or invalid on the server."
+          : "Could not reach TMDb.",
+    });
+  }
+});
+
 module.exports = router;

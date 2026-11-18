@@ -186,9 +186,40 @@ export function storyOrder({ entries, edges }, options = {}) {
   // equals; `watchOrders` uses it to keep main-story entries ahead of recaps
   // and side stories.
   const { rank = () => 0 } = options;
+
+  // An entry whose prequel was never collected is not a true root, it only
+  // looks like one. Traversal stops at a depth and entry cap, so a franchise
+  // larger than the cap always has entries sitting on that boundary with
+  // their predecessors missing. Left untreated they sort to the very front:
+  // a live trace of Monogatari put Tsukimonogatari (2014) and Kizumonogatari
+  // (2017) ahead of Bakemonogatari, which is badly wrong.
+  //
+  // They cannot simply be dropped - they are real entries - so they are
+  // ranked behind genuine roots and reported, letting the interface say which
+  // positions are unverified.
+  const incomplete = new Set(
+    ids.filter((id) =>
+      (entries.get(id).relations || []).some(
+        (relation) =>
+          relation.relationType === 'PREQUEL' &&
+          relation.type === 'ANIME' &&
+          !entries.has(relation.id)
+      )
+    )
+  );
+
+  // Priority among simultaneously-available entries: main story before side
+  // material, then resolved entries before boundary ones, then release date.
+  //
+  // Kind has to come first. Checking the boundary first promoted side stories
+  // and promo shorts - which have no prequels at all, so never look
+  // incomplete - above main entries whose predecessors merely fell outside
+  // the traversal.
   const byRank = (a, b) => {
-    const delta = rank(entries.get(a)) - rank(entries.get(b));
-    if (delta !== 0) return delta;
+    const kind = rank(entries.get(a)) - rank(entries.get(b));
+    if (kind !== 0) return kind;
+    const boundary = (incomplete.has(a) ? 1 : 0) - (incomplete.has(b) ? 1 : 0);
+    if (boundary !== 0) return boundary;
     return releaseKey(entries.get(a)) - releaseKey(entries.get(b));
   };
 
@@ -212,7 +243,7 @@ export function storyOrder({ entries, edges }, options = {}) {
   // a filter, which is quadratic in the number of entries.
   const placed = new Set(order);
   const cycles = ids.filter((id) => !placed.has(id)).sort(byRank);
-  return { order: [...order, ...cycles], cycles };
+  return { order: [...order, ...cycles], cycles, incomplete: [...incomplete] };
 }
 
 /**
@@ -238,7 +269,7 @@ export function watchOrders(graph, seedId) {
   const rank = (entry) =>
     KIND_RANK[classify(entry, relationToSeed.get(entry.id))] ?? 9;
 
-  const { order, cycles } = storyOrder(graph, { rank });
+  const { order, cycles, incomplete } = storyOrder(graph, { rank });
   const story = order.map(decorate);
 
   return {
@@ -248,5 +279,6 @@ export function watchOrders(graph, seedId) {
     story,
     essential: story.filter((e) => e.kind === 'main'),
     cycles,
+    incomplete,
   };
 }

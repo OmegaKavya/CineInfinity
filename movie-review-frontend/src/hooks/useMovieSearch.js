@@ -115,6 +115,35 @@ export function useMovieSearch() {
     }
   }, [query, cancelFetch]);
 
+  /**
+   * Open a film given only its title.
+   *
+   * The catalogue rows come from TMDb, but reviews are keyed by IMDb id, so
+   * selecting a poster has to resolve the title through OMDb first. Without
+   * this, clicking a catalogue card would have nothing to attach reviews to.
+   */
+  const openMovieByTitle = useCallback(
+    async (title) => {
+      if (!title) return;
+      cancelFetch();
+      setSearching(true);
+      try {
+        const { data } = await api.get(`/movies/omdb/${encodeURIComponent(title)}`);
+        if (data?.Title) {
+          setMovie(data);
+          setError('');
+        } else {
+          setError(`Could not find "${title}" in the review database.`);
+        }
+      } catch (err) {
+        setError(readableError(err, `Could not open "${title}".`));
+      } finally {
+        setSearching(false);
+      }
+    },
+    [cancelFetch]
+  );
+
   const onQueryChange = useCallback(
     (text) => {
       setQuery(text);
@@ -165,6 +194,7 @@ export function useMovieSearch() {
     onQueryChange,
     onKeyDown,
     openMovie,
+    openMovieByTitle,
     searchByTitle,
     setShowSuggestions,
     clearError: () => setError(''),
