@@ -57,7 +57,23 @@ export default function SearchBar({ search, className = '', placeholder = '🔍 
               className={`suggestion-item ${index === activeIndex ? 'active' : ''}`}
               onMouseDown={() => openMovie(suggestion.imdbID)}
             >
-              {suggestion.title} {suggestion.year ? `(${suggestion.year})` : ''}
+              {suggestion.poster ? (
+                <img
+                  className="suggestion-poster"
+                  src={suggestion.poster}
+                  alt=""
+                  loading="lazy"
+                />
+              ) : (
+                <span className="suggestion-poster suggestion-poster--missing" aria-hidden="true" />
+              )}
+              <span className="suggestion-text">
+                <span className="suggestion-title">{suggestion.title}</span>
+                <span className="suggestion-meta">
+                  {suggestion.year}
+                  {suggestion.type ? ` · ${suggestion.type}` : ''}
+                </span>
+              </span>
             </li>
           ))}
         </ul>

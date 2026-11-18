@@ -51,6 +51,11 @@ export function useMovieSearch() {
         imdbID: item.imdbID,
         title: item.Title,
         year: item.Year,
+        // OMDb sends these on every search hit. The list used to drop them
+        // and render a bare line of text, which gives no way to tell two
+        // films with the same name apart.
+        poster: item.Poster && item.Poster !== 'N/A' ? item.Poster : null,
+        type: item.Type,
       }));
       setSuggestions(results);
       setShowSuggestions(results.length > 0);

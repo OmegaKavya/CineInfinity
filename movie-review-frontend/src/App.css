@@ -426,28 +426,76 @@ body.dark-mode .navbar-search {
 /* Suggestions Dropdown */
 .suggestions-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 8px);
   left: 0;
   width: 100%;
-  max-height: 200px;
+  min-width: 20rem;
+  max-height: 23rem;
   overflow-y: auto;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid #ff007f;
-  border-radius: 10px;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: rgba(14, 14, 22, 0.97);
+  border: 1px solid rgba(255, 0, 127, 0.45);
+  border-radius: 14px;
   z-index: 1000;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85), var(--glow-soft);
+  backdrop-filter: blur(14px);
+  scrollbar-width: thin;
 }
 
+/* A row is a poster, a title and the year. Plain text lines gave no way to
+   tell two films with the same name apart, which is exactly when the list
+   matters most. */
 .suggestion-item {
-  padding: 10px 15px;
-  color: white;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 0.7rem;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  color: var(--ink);
   cursor: pointer;
-  transition: background 0.3s ease-in-out;
+  transition: background 0.15s var(--ease-out);
+}
+
+.suggestion-poster {
+  width: 34px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 5px;
+  background: var(--panel-raised);
+}
+
+.suggestion-poster--missing {
+  display: block;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.suggestion-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.suggestion-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-meta {
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+  text-transform: capitalize;
 }
 
 .suggestion-item:hover,
 .suggestion-item.active {
-  background: rgba(255, 0, 127, 0.8);
+  background: linear-gradient(90deg, rgba(255, 0, 127, 0.3), rgba(115, 0, 255, 0.22));
 }
 
 /* Movie Display Section */

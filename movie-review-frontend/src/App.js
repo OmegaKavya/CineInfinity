@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MovieCard from './components/MovieCard';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
@@ -39,6 +39,33 @@ export default function App() {
 
   // Which anime franchise the watch-order panel is currently explaining.
   const [franchise, setFranchise] = useState(null);
+
+  // A film is a place, so it should have an address. ?film=tt0110357 opens
+  // that film directly, which makes a result shareable and means a reload
+  // does not throw you back to an empty page.
+  const openedFromUrl = useRef(false);
+  useEffect(() => {
+    if (openedFromUrl.current) return;
+    const id = new URLSearchParams(window.location.search).get('film');
+    if (id && /^tt\d+$/.test(id)) {
+      openedFromUrl.current = true;
+      search.openMovie(id);
+    }
+  }, [search]);
+
+  // Keep the address in step with what is on screen, without adding history
+  // entries for every search: replaceState rather than pushState.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (search.movie?.imdbID) {
+      if (url.searchParams.get('film') === search.movie.imdbID) return;
+      url.searchParams.set('film', search.movie.imdbID);
+    } else {
+      if (!url.searchParams.has('film')) return;
+      url.searchParams.delete('film');
+    }
+    window.history.replaceState({}, '', url);
+  }, [search.movie]);
 
   // Firebase reports null before it has restored a session. Rendering the
   // signed-out view during that window flashed the login screen on every load

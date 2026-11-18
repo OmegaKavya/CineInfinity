@@ -18,17 +18,35 @@ app.use(express.json({ limit: "100kb" }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: "draft-8", legacyHeaders: false }));
 
 // CORS Config
-const allowedOrigins = [
-  "http://localhost:3000",
+//
+// The list said localhost:3000, which is Create React App's port. The
+// frontend moved to Vite, which serves on 5173 in development and 4173 for a
+// preview build, so every local request was refused and the app looked like
+// the backend was down.
+//
+// CORS_ORIGINS overrides this with a comma-separated list, so a new deploy
+// target does not need a code change.
+const DEFAULT_ORIGINS = [
+  "http://localhost:5173", // vite dev
+  "http://localhost:4173", // vite preview
   "https://movie-e78c5.web.app",
 ];
 
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const origins = allowedOrigins.length ? allowedOrigins : DEFAULT_ORIGINS;
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // No Origin header means a same-origin or non-browser caller (curl, a
+    // health check); those are not what CORS is protecting against.
+    if (!origin || origins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error(`Origin ${origin} is not allowed. Set CORS_ORIGINS to permit it.`));
     }
   },
   credentials: true
