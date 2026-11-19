@@ -43,6 +43,38 @@ describe('Your Signal', () => {
     expect(screen.queryByLabelText(/Distribution of your ratings/)).not.toBeInTheDocument();
   });
 
+  it('refuses to report a bias drawn from a single shared film', () => {
+    // The arithmetic yields 0.0, which reads as "you are exactly average".
+    // It is one coincidence, and the verdict line already refuses to read a
+    // personality into this little data.
+    state.signal = {
+      ...base, total: 1, comparedOn: 1, bias: 0,
+      contrarian: [{ movieId: 'tt1', title: '3 Idiots', mine: 10, crowd: 10, delta: 0, crowdCount: 1 }],
+      verdict: 'Too few ratings to read much into yet.',
+    };
+    render(<Signal />);
+    expect(screen.getByText('--')).toBeInTheDocument();
+    expect(screen.queryByText('0.0')).not.toBeInTheDocument();
+    // The panel is still named, so the feature is discoverable.
+    expect(screen.getByText(/Where you stand alone/)).toBeInTheDocument();
+    expect(screen.getByText(/One film/)).toBeInTheDocument();
+  });
+
+  it('does not say lowest and highest when there is one rating', () => {
+    // "Lowest you gave 10, highest 10" is the same number twice.
+    state.signal = { ...base, total: 1, lowest: 10, highest: 10, comparedOn: 0, bias: null };
+    render(<Signal />);
+    expect(screen.queryByText(/Lowest you gave/)).not.toBeInTheDocument();
+    expect(screen.getByText(/One rating so far/)).toBeInTheDocument();
+  });
+
+  it('reports the bias once enough films are shared', () => {
+    state.signal = { ...base, comparedOn: 6, bias: 0.8 };
+    render(<Signal />);
+    expect(screen.getByText('+0.8')).toBeInTheDocument();
+    expect(screen.getByText(/on 6 shared/)).toBeInTheDocument();
+  });
+
   it('omits the divergence panel when nobody else has rated the same films', () => {
     state.signal = { ...base, contrarian: [], comparedOn: 0, bias: null };
     render(<Signal />);

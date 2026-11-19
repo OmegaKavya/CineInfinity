@@ -17,6 +17,18 @@ import './Signal.css';
  * profile, and the server says so rather than drawing confident-looking
  * bars over nothing.
  */
+/**
+ * How many films you and other people must both have rated before a
+ * difference between you means anything.
+ *
+ * With one shared film the arithmetic still produces a number, and "0.0
+ * against the crowd" reads as a confident finding that you are exactly
+ * average. It is one coincidence. The verdict line already refuses to read a
+ * personality into a handful of ratings; the figures have to hold the same
+ * line, or the panel contradicts itself.
+ */
+const MIN_SHARED = 3;
+
 export default function Signal() {
   const { signal, loading, error } = useSignal();
 
@@ -47,8 +59,18 @@ export default function Signal() {
         <Figure label="Your mean" value={signal.mean?.toFixed(1) ?? '--'} />
         <Figure
           label="Against the crowd"
-          value={signal.bias === null ? '--' : `${signal.bias > 0 ? '+' : ''}${signal.bias.toFixed(1)}`}
-          hint={signal.comparedOn ? `on ${signal.comparedOn} shared` : 'nobody else yet'}
+          value={
+            signal.bias === null || signal.comparedOn < MIN_SHARED
+              ? '--'
+              : `${signal.bias > 0 ? '+' : ''}${signal.bias.toFixed(1)}`
+          }
+          hint={
+            signal.comparedOn === 0
+              ? 'nobody else yet'
+              : signal.comparedOn < MIN_SHARED
+                ? `only ${signal.comparedOn} shared so far`
+                : `on ${signal.comparedOn} shared`
+          }
         />
         <Figure label="Spread" value={signal.spread?.toFixed(1) ?? '--'} hint="std dev" />
       </div>
@@ -69,12 +91,34 @@ export default function Signal() {
             </li>
           ))}
         </ol>
-        <p className="signal__note">
-          Lowest you gave {signal.lowest}, highest {signal.highest}.
-        </p>
+        {/* Meaningless with one rating, where the lowest and the highest are
+            the same number and the sentence reads as a joke. */}
+        {signal.total > 1 ? (
+          <p className="signal__note">
+            Lowest you gave {signal.lowest}, highest {signal.highest}.
+          </p>
+        ) : (
+          <p className="signal__note">
+            One rating so far. The shape appears as you add more.
+          </p>
+        )}
       </div>
 
-      {signal.contrarian.length > 0 && (
+      {signal.comparedOn > 0 && signal.comparedOn < MIN_SHARED && (
+        <div className="signal__panel">
+          <h3>Where you stand alone</h3>
+          {/* Shown rather than hidden, so the panel is discoverable, but
+              without a ranking built on one or two films. */}
+          <p className="signal__note">
+            {signal.comparedOn === 1 ? 'One film' : `${signal.comparedOn} films`} so
+            far that you and someone else have both rated. This needs{' '}
+            {MIN_SHARED} before a difference means anything rather than being
+            a coincidence.
+          </p>
+        </div>
+      )}
+
+      {signal.contrarian.length > 0 && signal.comparedOn >= MIN_SHARED && (
         <div className="signal__panel">
           <h3>Where you stand alone</h3>
           <p className="signal__note">
