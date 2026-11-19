@@ -42,7 +42,9 @@ export default function Navbar({ search }) {
   return (
     <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
       <Link to="/" className="logo-link">
-        <h1 className="logo">CineInfinity 🎬</h1>
+        <h1 className="logo">
+          CineInfinity <span className="logo-emoji" aria-hidden="true">🎬</span>
+        </h1>
       </Link>
 
       <div className="navbar-links">
@@ -59,7 +61,13 @@ export default function Navbar({ search }) {
           aria-pressed={isDark}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {isDark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          {/* The label is a separate element so narrow screens can drop it
+              and keep the icon. The accessible name is on aria-label above,
+              so hiding the text costs a screen reader nothing. */}
+          <span aria-hidden="true">{isDark ? '☀️' : '🌙'}</span>
+          <span className="dark-mode-toggle__label">
+            {isDark ? 'Light Mode' : 'Dark Mode'}
+          </span>
         </button>
 
         <div className="profile-container" ref={menuRef}>

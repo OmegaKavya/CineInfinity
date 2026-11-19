@@ -1,33 +1,32 @@
 /**
- * AniList, called directly from the browser.
+ * AniList, through our own backend.
  *
- * No proxy and no key. AniList's public GraphQL API needs neither, and it is
- * the only source that publishes the typed relation edges - PREQUEL, SEQUEL,
- * SIDE_STORY - that the watch-order resolver is built on. Routing it through
- * our backend would add a hop and a failure point for nothing.
+ * This called graphql.anilist.co straight from the browser, on the reasoning
+ * that a public API needing no key needs no proxy. Production disagreed.
+ *
+ * AniList rate-limits per client IP, and from the browser the client is the
+ * visitor. People on one network exhaust the budget for each other, and the
+ * failure arrives as an opaque CORS error rather than a 429, because the
+ * rate-limit response carries no CORS headers. The portfolio's embedded demo
+ * hit exactly this and fell back to its saved run.
+ *
+ * Proxied, the client is one server with one budget, responses are cached
+ * for an hour across every visitor, and a rate limit comes back as a 429 the
+ * UI can actually explain. The query documents live on the server, so this
+ * sends an operation name rather than arbitrary GraphQL.
  */
+import { api } from './client';
 
-const ENDPOINT = 'https://graphql.anilist.co';
-
-async function query(document, variables) {
-  const response = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query: document, variables }),
-  });
-
-  if (response.status === 429) {
-    throw new Error('AniList is rate-limiting us. Try again in a moment.');
+async function query(operation, variables) {
+  try {
+    const { data } = await api.post('/anilist/graphql', { operation, variables });
+    return data.data;
+  } catch (error) {
+    if (error.response?.status === 429) {
+      throw new Error('AniList is rate-limiting us. Try again in a moment.');
+    }
+    throw new Error(error.response?.data?.error || 'Could not reach AniList.');
   }
-  if (!response.ok) {
-    throw new Error(`AniList returned ${response.status}.`);
-  }
-
-  const payload = await response.json();
-  if (payload.errors?.length) {
-    throw new Error(payload.errors[0].message || 'AniList rejected the query.');
-  }
-  return payload.data;
 }
 
 /** Shape AniList returns into the flat form the rest of the app expects. */
@@ -55,36 +54,14 @@ function toEntry(media) {
   };
 }
 
-const MEDIA_FIELDS = `
-  id
-  title { romaji english }
-  format
-  episodes
-  startDate { year month }
-  averageScore
-  description(asHtml: false)
-  coverImage { large }
-  bannerImage
-  siteUrl
-  genres
-  # Ranked tag profile, which is what the "if you liked this" scoring reads.
-  # Spoiler flags come with it so a recommendation cannot be made on, or
-  # explained by, something that gives the plot away.
-  tags { name rank isGeneralSpoiler isMediaSpoiler }
-  relations { edges { relationType node { id type } } }
-`;
+// The documents themselves now live in the backend, at
+// movie-review-backend/lib/anilistQueries.js. They still request the ranked
+// tag profile with its spoiler flags, which is what the "if you liked this"
+// scoring reads, and the typed relation edges the resolver walks.
 
 /** Popular anime, for the catalogue grid. */
 export async function popularAnime(page = 1, perPage = 20) {
-  const data = await query(
-    `query ($page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
-        pageInfo { currentPage lastPage }
-        media(type: ANIME, sort: POPULARITY_DESC, isAdult: false) { ${MEDIA_FIELDS} }
-      }
-    }`,
-    { page, perPage }
-  );
+  const data = await query('popular', { page, perPage });
 
   return {
     page: data.Page.pageInfo.currentPage,
@@ -95,14 +72,7 @@ export async function popularAnime(page = 1, perPage = 20) {
 
 /** Search anime by title. */
 export async function searchAnime(search, perPage = 12) {
-  const data = await query(
-    `query ($search: String, $perPage: Int) {
-      Page(perPage: $perPage) {
-        media(type: ANIME, search: $search, sort: SEARCH_MATCH, isAdult: false) { ${MEDIA_FIELDS} }
-      }
-    }`,
-    { search, perPage }
-  );
+  const data = await query('search', { search, perPage });
   return data.Page.media.map(toEntry);
 }
 
@@ -119,7 +89,7 @@ const cache = new Map();
 export async function fetchEntry(id) {
   if (cache.has(id)) return cache.get(id);
 
-  const promise = query(`query ($id: Int) { Media(id: $id) { ${MEDIA_FIELDS} } }`, { id })
+  const promise = query('entry', { id })
     .then((data) => toEntry(data.Media))
     .catch(() => null); // a missing entry must not abort the whole traversal
 

@@ -9,6 +9,8 @@ const authRoutes = require("./routes/authRoutes");
 const movieRoutes = require("./routes/movieRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const watchlistRoutes = require("./routes/watchlistRoutes");
+const createAnilistRouter = require("./routes/anilistRoutes");
+const { createCache } = require("./lib/cache");
 const { authError } = require("./config/firebase");
 
 const app = express();
@@ -31,7 +33,13 @@ app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: "draf
 const DEFAULT_ORIGINS = [
   "http://localhost:5173", // vite dev
   "http://localhost:4173", // vite preview
+  "https://cineinfinity.web.app",
+  "https://cineinfinity.firebaseapp.com",
+  // The original hosting site. A Firebase site id cannot be renamed, so the
+  // app moved to a second site and this one keeps serving, which means every
+  // link already shared still works. Both are allowed for the same reason.
   "https://movie-e78c5.web.app",
+  "https://movie-e78c5.firebaseapp.com",
 ];
 
 const allowedOrigins = (process.env.CORS_ORIGINS || "")
@@ -71,6 +79,12 @@ app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 
+// AniList responses are large and change slowly, so they are cached longer
+// than the film lookups: an hour, against a franchise traversal that revisits
+// the same entries on every resolve.
+const anilistCache = createCache({ max: 500, ttlMs: 60 * 60 * 1000 });
+app.use("/api/anilist", createAnilistRouter(anilistCache));
+
 // A readiness check worth polling: it reports the database connection and
 // the upstream cache's hit rate, which is the number that says whether the
 // daily OMDb quota is actually being protected.
@@ -93,6 +107,7 @@ app.get("/health", (_req, res) => {
     auth: firebaseFault ? "unavailable" : "ok",
     authError: firebaseFault ? firebaseFault.message : null,
     upstreamCache: movieRoutes.cacheStats ? movieRoutes.cacheStats() : null,
+    anilistCache: anilistCache.stats(),
   });
 });
 
