@@ -1,0 +1,159 @@
+/* How the resolver works.
+   Laid out as a document rather than a product page: a measured column, real
+   headings, and a diagram that carries the argument. */
+
+.how { max-width: 72ch; margin: 0 auto; padding-bottom: 4rem; }
+
+.how__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.how__header h1 {
+  margin: 0.4rem 0 0.8rem;
+  font-size: clamp(1.6rem, 4.5vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.how__lede { margin: 0; font-size: clamp(1rem, 2.2vw, 1.12rem); line-height: 1.6; opacity: 0.82; }
+
+/* ---- franchise picker ---- */
+
+.how__picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.6rem;
+  margin: 2rem 0 2.5rem;
+}
+
+.how__picks button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.how__picks button:hover { background: rgba(127, 127, 127, 0.1); }
+.how__picks button.is-active {
+  border-color: var(--accent, #ff2e88);
+  background: rgba(255, 46, 136, 0.08);
+}
+.how__picks b { font-size: 0.95rem; }
+.how__picks span { font-size: 0.76rem; opacity: 0.6; line-height: 1.35; }
+
+/* ---- steps ---- */
+
+.how__step { margin: 2.5rem 0; }
+
+.how__step h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: clamp(1.1rem, 2.6vw, 1.3rem);
+  margin: 0 0 0.5rem;
+}
+
+.how__step h2 span {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent, #ff2e88), #8c3cff);
+  flex-shrink: 0;
+}
+
+.how__step p { margin: 0 0 1rem; line-height: 1.6; opacity: 0.8; }
+
+.how__status { opacity: 0.7; }
+
+.how__caption { font-size: 0.8rem; opacity: 0.55; margin-top: 0.7rem !important; }
+
+/* ---- the graph ---- */
+
+.how__graph {
+  /* Wider than the text column on purpose: the diagram is the evidence, so
+     it gets the room. It scrolls horizontally on a phone rather than being
+     shrunk to illegibility. */
+  margin-inline: calc(var(--gutter, 1rem) * -1);
+  padding-inline: var(--gutter, 1rem);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.how__graph svg {
+  display: block;
+  /* No width: 100%. The element carries its own pixel size so the labels
+     stay readable and the container scrolls. */
+  max-width: none;
+}
+
+.how__node rect {
+  fill: rgba(127, 127, 127, 0.1);
+  stroke: rgba(127, 127, 127, 0.35);
+  stroke-width: 1;
+}
+.how__node.is-main rect { stroke: var(--accent, #ff2e88); }
+.how__node.is-side rect { stroke-dasharray: 4 3; }
+
+.how__node-title { font-size: 13px; font-weight: 600; fill: currentColor; }
+.how__node-year { font-size: 11px; fill: currentColor; opacity: 0.55; font-variant-numeric: tabular-nums; }
+
+.how__edge { color: rgba(127, 127, 127, 0.55); }
+.how__edge path { stroke: currentColor; stroke-width: 1.6; }
+/* A prequel edge is the interesting one, so it is the one that is coloured. */
+.how__edge.is-prequel { color: var(--accent, #ff2e88); }
+.how__edge.is-side_story path { stroke-dasharray: 4 3; }
+
+/* ---- the comparison ---- */
+
+.how__compare { list-style: none; margin: 0; padding: 0; }
+
+.how__compare li {
+  display: grid;
+  grid-template-columns: 2rem 1fr 3rem 5rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid rgba(127, 127, 127, 0.16);
+  font-size: 0.88rem;
+}
+
+.how__from, .how__year { opacity: 0.5; font-variant-numeric: tabular-nums; }
+.how__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.how__to {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+.how__to em { font-style: normal; opacity: 0.35; font-size: 0.78rem; }
+.how__to i { font-style: normal; font-size: 0.7rem; opacity: 0.6; }
+
+.how__compare li.is-moved .how__to { color: var(--accent, #ff2e88); font-weight: 700; }
+
+/* ---- the honest bit ---- */
+
+.how__step--notes ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.6rem; }
+.how__step--notes li { line-height: 1.55; opacity: 0.78; font-size: 0.92rem; }
+
+@media (max-width: 520px) {
+  .how__compare li { grid-template-columns: 1.6rem 1fr 4.5rem; }
+  .how__year { display: none; }
+}

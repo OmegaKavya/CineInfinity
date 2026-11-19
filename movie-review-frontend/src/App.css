@@ -1661,3 +1661,17 @@ button:hover {
   .navbar .logo-emoji { display: none; }
   .navbar-links { gap: 0.5rem; }
 }
+
+
+/* A routed page starts at the top of the document, under the fixed navbar.
+   The home page does not need this: its hero is rendered above main and
+   already clears the bar. */
+.app-main--page {
+  padding-top: calc(72px + clamp(1.5rem, 4vw, 3rem));
+}
+
+@media (max-width: 768px) {
+  .app-main--page {
+    padding-top: calc(59px + 1.25rem);
+  }
+}

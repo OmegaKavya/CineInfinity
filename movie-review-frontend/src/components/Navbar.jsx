@@ -48,6 +48,7 @@ export default function Navbar({ search }) {
       </Link>
 
       <div className="navbar-links">
+        <NavLink to="/how">How</NavLink>
         <NavLink to="/search">Reviews</NavLink>
         <NavLink to="/you">You</NavLink>
       </div>

@@ -136,6 +136,9 @@ push.
 
 ## Deployment
 
+Live at **https://cineinfinity.web.app**.
+
+
 The frontend is a static build on Firebase Hosting. The backend runs on
 Render from `movie-review-backend`, with `npm install` to build and
 `npm start` to run.

@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import FilmPage from './pages/FilmPage';
 import AnimePage from './pages/AnimePage';
 import SearchPage from './pages/SearchPage';
+import HowPage from './pages/HowPage';
 import YouPage from './pages/YouPage';
 import { useAuth } from './context/AuthContext';
 import { useMovieSearch } from './hooks/useMovieSearch';
@@ -47,14 +48,15 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/film/:imdbID" element={<main className="app-main"><FilmPage /></main>} />
+        <Route path="/film/:imdbID" element={<main className="app-main app-main--page"><FilmPage /></main>} />
         <Route path="/anime/:id" element={<AnimePage />} />
-        <Route path="/search" element={<main className="app-main"><SearchPage /></main>} />
-        <Route path="/you" element={<main className="app-main"><YouPage /></main>} />
+        <Route path="/search" element={<main className="app-main app-main--page"><SearchPage /></main>} />
+        <Route path="/how" element={<main className="app-main app-main--page"><HowPage /></main>} />
+        <Route path="/you" element={<main className="app-main app-main--page"><YouPage /></main>} />
         <Route
           path="*"
           element={
-            <main className="app-main">
+            <main className="app-main app-main--page">
               <p className="page-state">That page does not exist.</p>
             </main>
           }
