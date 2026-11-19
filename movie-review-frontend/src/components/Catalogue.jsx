@@ -9,6 +9,22 @@ import { useEffect, useRef, useState } from 'react';
  * all four from the browser. The arrow buttons just call scrollBy, so they
  * are an enhancement rather than the mechanism.
  */
+/** TMDb gives `year`, AniList nests it under startDate. */
+function displayYear(item) {
+  return item.year || item.startDate?.year || null;
+}
+
+/**
+ * One score out of ten. TMDb's `rating` is already on that scale; AniList's
+ * `averageScore` is out of 100. Zero is not a score anyone assigned, it is
+ * what both APIs return for an unrated title, so it reads as absent.
+ */
+function displayScore(item) {
+  if (item.rating) return item.rating.toFixed(1);
+  if (item.averageScore) return (item.averageScore / 10).toFixed(1);
+  return null;
+}
+
 export default function Catalogue({ title, subtitle, items, loading, error, onSelect }) {
   const trackRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -37,8 +53,16 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
     if (track) track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: 'smooth' });
   };
 
+  // The component already knows which directions can scroll, for the arrow
+  // buttons. The same two flags drive the edge fade, so a row that cannot
+  // scroll left is not faded on its left.
+  const fade = [
+    canScrollLeft ? 'catalogue--fade-left' : '',
+    canScrollRight ? 'catalogue--fade-right' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <section className="catalogue">
+    <section className={`catalogue ${fade}`.trim()}>
       <header className="catalogue__header">
         <div>
           <h2 className="catalogue__title">{title}</h2>
@@ -95,9 +119,17 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
                 )}
                 <span className="poster__title">{item.title}</span>
                 <span className="poster__meta">
-                  {item.year || item.startDate?.year || ''}
-                  {item.rating ? ` · ${item.rating.toFixed(1)}` : ''}
-                  {item.averageScore ? ` · ${(item.averageScore / 10).toFixed(1)}` : ''}
+                  {/* Year and score were concatenated into one text node with
+                      a leading separator, so an item with a score but no year
+                      rendered as " · 8.1", and an anime carrying both rating
+                      and averageScore printed the score twice. They are two
+                      elements now, each rendered only when it exists. */}
+                  {displayYear(item) && (
+                    <span className="poster__year">{displayYear(item)}</span>
+                  )}
+                  {displayScore(item) !== null && (
+                    <span className="poster__score">{displayScore(item)}</span>
+                  )}
                 </span>
               </button>
             </li>
