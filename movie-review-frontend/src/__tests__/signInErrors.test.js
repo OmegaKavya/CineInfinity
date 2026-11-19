@@ -11,6 +11,20 @@ vi.mock('firebase/auth', () => ({
 }));
 vi.mock('firebase/app', () => ({ initializeApp: () => ({}) }));
 
+// firebase.js validates its config at module load and throws when a value
+// is missing, which is deliberate: it is how a fresh clone finds out about a
+// missing .env. CI has no .env, so importing the module there failed the
+// whole suite while passing on a machine that happens to have one.
+//
+// Stubbed before the import, not skipped: the point is to exercise the real
+// module. The values are placeholders and not a real project's.
+for (const key of [
+  'API_KEY', 'AUTH_DOMAIN', 'PROJECT_ID', 'STORAGE_BUCKET',
+  'MESSAGING_SENDER_ID', 'APP_ID', 'MEASUREMENT_ID',
+]) {
+  vi.stubEnv(`VITE_FIREBASE_${key}`, `test-${key.toLowerCase()}`);
+}
+
 const { signInWithGoogle } = await import('../firebase');
 
 /**
