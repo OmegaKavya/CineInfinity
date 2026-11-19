@@ -14,14 +14,14 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../hooks/useReviews', () => ({
   useReviews: () => ({
     reviews: [
-      { _id: 'r1', username: 'Someone', rating: 8, comment: 'Good', uid: 'other' },
+      { _id: 'r1', username: 'Someone', rating: 8, comment: 'Good', userId: 'other' },
     ],
     loading: false,
     error: '',
     add: vi.fn(),
     edit: vi.fn(),
     remove: vi.fn(),
-    isMine: (review) => Boolean(state.user) && review.uid === state.user.uid,
+    isMine: (review) => Boolean(state.user) && review.userId === state.user.uid,
     clearError: vi.fn(),
   }),
 }));

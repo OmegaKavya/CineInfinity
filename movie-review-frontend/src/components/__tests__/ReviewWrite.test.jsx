@@ -29,7 +29,7 @@ vi.mock('../../hooks/useReviews', () => ({
     add: hook.add,
     edit: hook.edit,
     remove: hook.remove,
-    isMine: (review) => Boolean(state.user) && review.uid === state.user.uid,
+    isMine: (review) => Boolean(state.user) && review.userId === state.user.uid,
     clearError: vi.fn(),
   }),
 }));
@@ -38,13 +38,13 @@ const { default: ReviewSection } = await import('../ReviewSection');
 
 const mine = {
   _id: 'r1',
-  uid: 'me',
+  userId: 'me',
   username: 'Kavya',
   rating: 7,
   comment: 'Held up better than I expected.',
   createdAt: '2026-01-02T00:00:00.000Z',
 };
-const theirs = { ...mine, _id: 'r2', uid: 'someone-else', username: 'Ravi' };
+const theirs = { ...mine, _id: 'r2', userId: 'someone-else', username: 'Ravi' };
 
 beforeEach(() => {
   state.user = { uid: 'me', displayName: 'Kavya' };
