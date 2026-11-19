@@ -134,6 +134,13 @@ push.
 
 ---
 
+## Architecture
+
+The engineering detail, including the resolver, the signal maths and where
+the system degrades rather than fails, is in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
 ## Deployment
 
 Live at **https://cineinfinity.web.app**.
