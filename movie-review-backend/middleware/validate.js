@@ -12,7 +12,13 @@ function validateReview(req, res, next) {
     const error = requireString(movieId, "movieId", { max: 64 });
     if (error) errors.push(error);
   }
-  const numericRating = Number(rating);
+  // Number() alone was too generous: it accepted true as 1, [7] and ["7"] as
+  // 7, and "0x7" as 7, so a malformed body became a plausible-looking rating
+  // instead of an error. Only a real number or a plain decimal string counts.
+  const isPlainNumber = typeof rating === "number" && Number.isFinite(rating);
+  const isDecimalString = typeof rating === "string" && /^\s*\d{1,2}\s*$/.test(rating);
+  const numericRating = isPlainNumber || isDecimalString ? Number(rating) : NaN;
+
   if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 10) {
     errors.push("rating must be an integer from 1 to 10");
   }
