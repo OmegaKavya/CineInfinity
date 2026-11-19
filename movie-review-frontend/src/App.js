@@ -46,10 +46,21 @@ export default function App() {
   const openedFromUrl = useRef(false);
   useEffect(() => {
     if (openedFromUrl.current) return;
-    const id = new URLSearchParams(window.location.search).get('film');
-    if (id && /^tt\d+$/.test(id)) {
+    const params = new URLSearchParams(window.location.search);
+
+    const film = params.get('film');
+    if (film && /^tt\d+$/.test(film)) {
       openedFromUrl.current = true;
-      search.openMovie(id);
+      search.openMovie(film);
+      return;
+    }
+
+    // ?anime=<AniList id> opens the watch order for that series directly,
+    // which is the thing worth sending someone: "watch it in this order".
+    const animeId = params.get('anime');
+    if (animeId && /^\d+$/.test(animeId)) {
+      openedFromUrl.current = true;
+      setFranchise({ id: Number(animeId), title: '' });
     }
   }, [search]);
 
@@ -57,15 +68,17 @@ export default function App() {
   // entries for every search: replaceState rather than pushState.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (search.movie?.imdbID) {
-      if (url.searchParams.get('film') === search.movie.imdbID) return;
-      url.searchParams.set('film', search.movie.imdbID);
-    } else {
-      if (!url.searchParams.has('film')) return;
-      url.searchParams.delete('film');
-    }
-    window.history.replaceState({}, '', url);
-  }, [search.movie]);
+    const film = search.movie?.imdbID;
+    const animeId = franchise?.id;
+
+    const before = url.search;
+    if (film) url.searchParams.set('film', film);
+    else url.searchParams.delete('film');
+    if (animeId) url.searchParams.set('anime', String(animeId));
+    else url.searchParams.delete('anime');
+
+    if (url.search !== before) window.history.replaceState({}, '', url);
+  }, [search.movie, franchise]);
 
   // Firebase reports null before it has restored a session. Rendering the
   // signed-out view during that window flashed the login screen on every load

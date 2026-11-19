@@ -52,6 +52,13 @@ export default function WatchOrder({ anime, onClose }) {
   if (!anime) return null;
 
   const list = orders?.[view] || [];
+
+  // A franchise opened from ?anime=<id> arrives with no title, so take it
+  // from the entry the resolver found rather than leaving the heading blank.
+  const seriesTitle =
+    anime.title ||
+    orders?.release?.find((entry) => entry.id === anime.id)?.title ||
+    '';
   const differs =
     orders &&
     orders.release.map((e) => e.id).join() !== orders.story.map((e) => e.id).join();
@@ -60,7 +67,7 @@ export default function WatchOrder({ anime, onClose }) {
     <section className="watch-order">
       <header className="watch-order__header">
         <div>
-          <h3>Watch order — {anime.title}</h3>
+          <h3>{seriesTitle ? `Watch order: ${seriesTitle}` : 'Watch order'}</h3>
           <p className="watch-order__sub">
             Built from how AniList relates these entries to each other.
           </p>
@@ -112,7 +119,7 @@ export default function WatchOrder({ anime, onClose }) {
         // a confidently wrong ordering is worse than an uncertain one.
         <p className="watch-order__note watch-order__note--warn">
           {orders.cycles.length} entr{orders.cycles.length === 1 ? 'y' : 'ies'} could not be
-          placed confidently — the relation data contradicts itself there, so treat their
+          placed confidently, because the relation data contradicts itself there, so treat their
           position as a guess.
         </p>
       )}
