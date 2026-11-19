@@ -115,8 +115,8 @@ everyone for an hour.
 ## Tests
 
 ```bash
-cd movie-review-frontend && npm test    # 82
-cd movie-review-backend  && npm test    # 54
+cd movie-review-frontend && npm test    # 100
+cd movie-review-backend  && npm test    # 89
 ```
 
 The backend suite includes the review API end to end, real HTTP against real
@@ -174,7 +174,12 @@ of the API that never needed that variable.
 
 ## Known limits
 
-- Reviews are not paginated. Fine at this size, wrong at a larger one.
+- Review search is a case-insensitive regular expression, not a text index.
+  Correct and fast enough at this size; a real corpus wants a MongoDB text
+  index or Atlas Search.
+- Your Signal compares a user against the people who rated the same films
+  here, which is a small crowd. It says so rather than implying a verdict
+  drawn from everyone.
 - The cache is in-memory, so a restart clears it. A shared cache would need
   another service to run, which is not worth it to protect one daily quota.
 - Catalogue cards resolve a TMDb title through OMDb to get an IMDb id, since
