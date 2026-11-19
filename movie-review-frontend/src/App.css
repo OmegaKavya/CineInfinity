@@ -244,206 +244,16 @@ body.dark-mode .navbar-search {
   box-shadow: 0 0 15px #ff007f;
 }
 
-/* Login Page */
-.login-page {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  padding: 20px;
-  background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
-  position: relative;
-  overflow: hidden;
-  animation: backgroundShift 10s infinite alternate; /* Subtle background animation */
-}
-
-@keyframes backgroundShift {
-  0% {
-    background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
-  }
-  100% {
-    background: linear-gradient(120deg, var(--surface-3), var(--surface-1));
-  }
-}
-
-.login-content {
-  text-align: center;
-  padding: 30px;
-  background: var(--hairline);
-  border-radius: 15px;
-  box-shadow: 0 10px 20px rgba(255, 0, 127, 0.5);
-  max-width: 400px;
-  width: 100%;
-  z-index: 1;
-  animation: fadeIn 0.5s ease-in-out;
-  border: 2px solid transparent; /* Gradient border */
-  background-clip: padding-box;
-  background-origin: border-box;
-  border-image: linear-gradient(90deg, #ff007f, #7300ff) 1;
-}
-
-.login-content h1 {
-  font-size: 36px; /* Slightly larger font */
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #ff007f; /* Accent color */
-  text-shadow: 0 0 10px rgba(255, 0, 127, 0.7);
-}
-
-.login-content p {
-  font-size: 16px;
-  margin-bottom: 20px;
-  color: #ccc; /* Softer text color */
-}
-
-.login-content button {
-  padding: 12px 20px;
-  border-radius: 30px;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 16px;
-  background: linear-gradient(90deg, #ff007f, #7300ff);
-  color: white;
-  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out, background 0.3s ease-in-out;
-}
-
-.login-content button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 20px #ff007f;
-  background: linear-gradient(90deg, #7300ff, #ff007f);
-}
-
-/* Add a glowing effect to the button */
-.login-content button:focus {
-  outline: none;
-  box-shadow: 0 0 25px #ff007f, 0 0 50px #7300ff;
-}
-
 /* Responsive Login Page */
 @media (max-width: 768px) {
-  .login-page {
-    padding: 10px;
-  }
-
-  .login-content {
-    width: 90%;
-  }
 }
 
 /* Smooth fade-in animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Fix potential issues with overlapping elements */
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--veil);
-  z-index: 0; /* Ensure overlay is behind content */
-}
-
-/* Background Slideshow (Left Side) */
-.slideshow {
-  position: relative;
-  width: 50%;
-  height: 100vh;
-}
-
-.slide {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 1s ease-in-out;
-}
-
-.slide.active {
-  opacity: 1;
-}
-
-/* Dark Overlay */
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--veil);
-  z-index: 0; /* Ensure overlay is behind content */
-}
-
-/* Post-Login Dashboard */
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 20px;
-  background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
-  min-height: 100vh;
-}
 
 .dashboard-title {
   font-size: 32px;
   color: #ff007f;
   margin-bottom: 20px;
-}
-
-/* Search Bar */
-.search-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 50px;
-}
-
-.search-input {
-  width: 400px;
-  padding: 12px;
-  border-radius: 30px;
-  border: 2px solid #ff007f;
-  font-size: 16px;
-  outline: none;
-  transition: 0.3s ease-in-out;
-}
-
-.search-input:focus {
-  border-color: #7300ff;
-  box-shadow: 0 0 10px #ff007f;
-}
-
-.search-button {
-  margin-left: 10px;
-  padding: 12px 20px;
-  border-radius: 30px;
-  border: none;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 16px;
-  background: linear-gradient(90deg, #ff007f, #7300ff);
-  color: white;
-  transition: 0.3s ease-in-out;
-}
-
-.search-button:hover {
-  background: linear-gradient(90deg, #7300ff, #ff007f);
-  transform: scale(1.1);
-  box-shadow: 0 0 10px #ff007f;
 }
 
 /* Suggestions Dropdown */
@@ -535,7 +345,7 @@ body.dark-mode .navbar-search {
   border-radius: 20px;
   padding: 20px;
   text-align: center;
-  color: white;
+  color: var(--ink);
   box-shadow: 0 10px 20px rgba(255, 0, 127, 0.5);
   transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 }
@@ -608,7 +418,7 @@ body.dark-mode .navbar-search {
 
 .review-form label {
   font-size: 16px;
-  color: white;
+  color: var(--ink);
 }
 
 .review-form input,
@@ -616,8 +426,8 @@ body.dark-mode .navbar-search {
   padding: 10px;
   border-radius: 10px;
   border: 2px solid #ff007f;
-  background: var(--hairline);
-  color: white;
+  background: var(--panel-raised);
+  color: var(--ink);
   font-size: 16px;
   outline: none;
   transition: 0.3s ease-in-out;
@@ -661,7 +471,7 @@ body.dark-mode .navbar-search {
   border-radius: 15px;
   padding: 15px;
   margin-bottom: 15px;
-  color: white;
+  color: var(--ink);
   box-shadow: 0 5px 10px rgba(255, 0, 127, 0.3);
 }
 
@@ -670,7 +480,7 @@ body.dark-mode .navbar-search {
 }
 
 .review-item small {
-  color: #ccc;
+  color: var(--ink-dim);
 }
 
 .review-actions {
@@ -706,7 +516,7 @@ body.dark-mode .navbar-search {
 
 .edit-review-form label {
   font-size: 16px;
-  color: white;
+  color: var(--ink);
 }
 
 .edit-review-form input,
@@ -714,8 +524,8 @@ body.dark-mode .navbar-search {
   padding: 10px;
   border-radius: 10px;
   border: 2px solid #ff007f;
-  background: var(--hairline);
-  color: white;
+  background: var(--panel-raised);
+  color: var(--ink);
   font-size: 16px;
   outline: none;
   transition: 0.3s ease-in-out;
@@ -1014,8 +824,6 @@ button:hover {
     linear-gradient(to top, var(--bg) 2%, rgba(18, 18, 18, 0.78) 34%, rgba(18, 18, 18, 0.3) 100%),
     linear-gradient(115deg, rgba(255, 0, 127, 0.22), transparent 45%, rgba(115, 0, 255, 0.28));
 }
-
-
 
 .hero-title {
   background: linear-gradient(120deg, #fff 35%, var(--neon) 100%);
