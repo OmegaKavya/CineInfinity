@@ -21,9 +21,12 @@ const BLANK = { rating: 7, comment: '' };
  * Buttons are typed and disabled while a submission is in flight, so a double
  * click cannot post the same review twice.
  */
-export default function ReviewSection({ movieId }) {
+export default function ReviewSection({ movieId, film }) {
   const { user } = useAuth();
-  const { reviews, loading, error, add, edit, remove, isMine } = useReviews(movieId);
+  const {
+    reviews, loading, loadingMore, error, add, edit, remove, isMine,
+    loadMore, total, average, hasMore,
+  } = useReviews(movieId, film);
 
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState(BLANK);
@@ -53,7 +56,18 @@ export default function ReviewSection({ movieId }) {
 
   return (
     <section className="reviews-section">
-      <h3>Reviews</h3>
+      <header className="reviews-header">
+        <h3>Reviews {total > 0 && <small>({total})</small>}</h3>
+        {/* Number.isFinite rather than a null check: the server sends null
+            for a film nobody has rated, and an absent field reads as
+            undefined, which "!== null" lets through and then crashes on
+            .toFixed. */}
+        {Number.isFinite(average) && (
+          <span className="reviews-average" title="Average of every rating here">
+            <b>{average.toFixed(1)}</b> average
+          </span>
+        )}
+      </header>
 
       {error && <p className="error-text" role="alert">{error}</p>}
 
@@ -156,6 +170,17 @@ export default function ReviewSection({ movieId }) {
           )}
         </article>
       ))}
+
+      {hasMore && (
+        <button
+          type="button"
+          className="reviews-more"
+          onClick={loadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore ? 'Loading…' : `Show more (${total - reviews.length} left)`}
+        </button>
+      )}
     </section>
   );
 }

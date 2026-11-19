@@ -41,7 +41,9 @@ const existing = {
 
 beforeEach(() => {
   auth.user = { uid: 'me' };
-  api.get.mockReset().mockResolvedValue({ data: [existing] });
+  api.get
+    .mockReset()
+    .mockResolvedValue({ data: { items: [existing], total: 1, average: 8, hasMore: false } });
   api.post.mockReset();
   api.put.mockReset();
   api.delete.mockReset();
@@ -53,7 +55,9 @@ describe('loading', () => {
     const { result } = renderHook(() => useReviews('tt1'));
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(api.get).toHaveBeenCalledWith('/reviews/tt1');
+    expect(api.get).toHaveBeenCalledWith('/reviews/tt1', {
+      params: { page: 1, limit: 10 },
+    });
     expect(result.current.reviews).toHaveLength(1);
   });
 
@@ -68,7 +72,7 @@ describe('loading', () => {
     expect(api.get).not.toHaveBeenCalled();
   });
 
-  it('survives a response that is not an array', async () => {
+  it('survives a response with no items', async () => {
     api.get.mockResolvedValue({ data: { oops: true } });
     const { result } = renderHook(() => useReviews('tt1'));
     await waitFor(() => expect(result.current.loading).toBe(false));

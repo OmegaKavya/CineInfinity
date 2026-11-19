@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { arrange, decadesIn, SORTS } from '../lib/sortFilms';
 
 /**
  * A horizontally scrollable row of posters.
@@ -25,7 +26,18 @@ function displayScore(item) {
   return null;
 }
 
-export default function Catalogue({ title, subtitle, items, loading, error, onSelect }) {
+export default function Catalogue({
+  title, subtitle, items, loading, error, onSelect, filterable = false,
+}) {
+  const [sort, setSort] = useState('default');
+  const [decade, setDecade] = useState(null);
+
+  const decades = useMemo(() => (filterable ? decadesIn(items) : []), [filterable, items]);
+  const shown = useMemo(
+    () => (filterable ? arrange(items, { sort, decade }) : items),
+    [filterable, items, sort, decade]
+  );
+
   const trackRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -46,7 +58,7 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
       track.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
     };
-  }, [items]);
+  }, [shown]);
 
   const scrollBy = (direction) => {
     const track = trackRef.current;
@@ -88,6 +100,40 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
         </div>
       </header>
 
+      {filterable && !loading && !error && items.length > 0 && (
+        <div className="catalogue__filters">
+          <label>
+            <span className="visually-hidden">Sort {title}</span>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              {SORTS.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+
+          {decades.length > 1 && (
+            <label>
+              <span className="visually-hidden">Filter {title} by decade</span>
+              <select
+                value={decade === null ? '' : String(decade)}
+                onChange={(event) =>
+                  setDecade(event.target.value === '' ? null : Number(event.target.value))
+                }
+              >
+                <option value="">Any decade</option>
+                {decades.map((d) => (
+                  <option key={d} value={d}>{d}s</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <span className="catalogue__count">
+            {shown.length} of {items.length}
+          </span>
+        </div>
+      )}
+
       {error && <p className="error-text" role="alert">{error}</p>}
 
       {loading && (
@@ -102,7 +148,7 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
 
       {!loading && !error && (
         <ul className="catalogue__track" ref={trackRef}>
-          {items.map((item) => (
+          {shown.map((item) => (
             <li key={item.id} className="poster">
               <button type="button" className="poster__button" onClick={() => onSelect?.(item)}>
                 {item.poster || item.cover ? (
@@ -135,6 +181,15 @@ export default function Catalogue({ title, subtitle, items, loading, error, onSe
             </li>
           ))}
         </ul>
+      )}
+
+      {!loading && !error && items.length > 0 && shown.length === 0 && (
+        <p className="catalogue__empty">
+          Nothing in this row matches that filter.{' '}
+          <button type="button" className="catalogue__reset" onClick={() => setDecade(null)}>
+            Clear it
+          </button>
+        </p>
       )}
 
       {!loading && !error && items.length === 0 && <p>Nothing to show here yet.</p>}

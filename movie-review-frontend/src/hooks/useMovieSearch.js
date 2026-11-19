@@ -156,6 +156,39 @@ export function useMovieSearch() {
     [cancelFetch]
   );
 
+  /**
+   * Resolve a catalogue card to its IMDb id without opening it.
+   *
+   * A TMDb card knows a title and a year; reviews are keyed by IMDb id. With
+   * routing, the caller needs the id to navigate to an address rather than
+   * needing the film placed into this hook's state, so this returns the film
+   * instead of storing it.
+   */
+  const resolveByTitle = useCallback(
+    async (title, year) => {
+      if (!title) return null;
+      cancelFetch();
+      setSearching(true);
+      try {
+        const { data } = await api.get(`/movies/omdb/${encodeURIComponent(title)}`, {
+          params: year ? { year } : undefined,
+        });
+        if (data?.Title) {
+          setError('');
+          return data;
+        }
+        setError(`Could not find "${title}" in the review database.`);
+        return null;
+      } catch (err) {
+        setError(readableError(err, `Could not open "${title}".`));
+        return null;
+      } finally {
+        setSearching(false);
+      }
+    },
+    [cancelFetch]
+  );
+
   const onQueryChange = useCallback(
     (text) => {
       setQuery(text);
@@ -207,6 +240,7 @@ export function useMovieSearch() {
     onKeyDown,
     openMovie,
     openMovieByTitle,
+    resolveByTitle,
     searchByTitle,
     setShowSuggestions,
     clearError: () => setError(''),

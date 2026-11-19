@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import SearchBar from './SearchBar';
@@ -40,7 +41,14 @@ export default function Navbar({ search }) {
 
   return (
     <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
-      <h1 className="logo">CineInfinity 🎬</h1>
+      <Link to="/" className="logo-link">
+        <h1 className="logo">CineInfinity 🎬</h1>
+      </Link>
+
+      <div className="navbar-links">
+        <NavLink to="/search">Reviews</NavLink>
+        <NavLink to="/you">You</NavLink>
+      </div>
 
       <div className="navbar-features">
         <SearchBar search={search} className="navbar-search" id="navbar-search" />
@@ -65,6 +73,9 @@ export default function Navbar({ search }) {
               />
               {menuOpen && (
                 <div className="dropdown-menu" role="menu">
+                  <Link role="menuitem" to="/you" onClick={() => setMenuOpen(false)}>
+                    Your signal
+                  </Link>
                   <button role="menuitem" onClick={signOut}>Log out</button>
                 </div>
               )}
