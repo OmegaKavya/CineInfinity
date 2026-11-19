@@ -8,6 +8,8 @@ movie-review-frontend/.env
 movie-review-frontend/.env.local
 .env
 .env.*
+!.env.example
+!**/.env.example
 
 # Dependencies.
 # The frontend's node_modules was not ignored, so every git command walked

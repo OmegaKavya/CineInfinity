@@ -21,4 +21,6 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/src/firebase.js
+# src/firebase.js is deliberately NOT ignored: it reads its config from
+# the environment and holds no secret. Ignoring it made a fresh clone
+# unbuildable, which CI caught on its first run.
