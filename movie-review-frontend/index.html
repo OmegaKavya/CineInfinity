@@ -5,13 +5,38 @@
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
-    <meta name="description" content="Explore and review your favorite movies." />
+    <meta
+      name="description"
+      content="Reviews and ratings for Hollywood, Bollywood and anime, plus a resolver that works out the order to watch a series in rather than listing it by release date."
+    />
+    <meta property="og:title" content="CineInfinity" />
+    <meta
+      property="og:description"
+      content="Every film, and the order to watch them in. Release order is frequently wrong: prequels arrive years after the series they precede."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>CineInfinity</title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div style="max-width: 42rem; margin: 0 auto; padding: 2rem 1rem; font-family: system-ui, sans-serif; color: #fff; background: #121212;">
+        <h1>CineInfinity</h1>
+        <p>
+          Reviews and ratings for Hollywood, Bollywood and anime, plus a
+          resolver that works out the order to watch a series in.
+        </p>
+        <p>
+          Release order is frequently the wrong order. Kizumonogatari is a
+          prequel that arrived seven years after the series it precedes, so
+          sorting by date hands you the ending first. The resolver sorts the
+          relation graph instead.
+        </p>
+        <p>This page needs JavaScript for the interactive version.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.js"></script>
   </body>
