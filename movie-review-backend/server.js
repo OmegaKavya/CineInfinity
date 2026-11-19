@@ -68,6 +68,22 @@ app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewRoutes);
 
+// A readiness check worth polling: it reports the database connection and
+// the upstream cache's hit rate, which is the number that says whether the
+// daily OMDb quota is actually being protected.
+app.get("/health", (_req, res) => {
+  const states = ["disconnected", "connected", "connecting", "disconnecting"];
+  const dbState = states[mongoose.connection.readyState] || "unknown";
+  const healthy = mongoose.connection.readyState === 1;
+
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? "ok" : "degraded",
+    uptimeSeconds: Math.round(process.uptime()),
+    database: dbState,
+    upstreamCache: movieRoutes.cacheStats ? movieRoutes.cacheStats() : null,
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("🎬 CineInfinity API is Running");
 });

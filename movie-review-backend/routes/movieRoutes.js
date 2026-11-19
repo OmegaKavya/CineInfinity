@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const { validateMovieQuery } = require("../middleware/validate");
+const { createCache } = require("../lib/cache");
 
 const router = express.Router();
 
@@ -8,9 +9,28 @@ const router = express.Router();
 const omdb = axios.create({ baseURL: "https://www.omdbapi.com/", timeout: 8000, maxRedirects: 0 });
 const tmdb = axios.create({ baseURL: "https://api.themoviedb.org/3", timeout: 8000, maxRedirects: 0 });
 
+// Upstream responses are cached because the free OMDb tier allows 1,000
+// requests a day and every home page load costs two TMDb calls on its own.
+// Film details are effectively immutable, so they are held far longer than a
+// popularity list, which moves over hours.
+const TTL = {
+  details: 24 * 60 * 60 * 1000,
+  search: 60 * 60 * 1000,
+  discover: 30 * 60 * 1000,
+};
+
+const cache = createCache({ max: 1000, ttlMs: TTL.search });
+
+/** Exposed so /health can report whether the cache is doing its job. */
+router.cacheStats = () => cache.stats();
+
 router.get("/omdb/details", validateMovieQuery, async (req, res) => {
   try {
-    const response = await omdb.get("/", { params: { i: req.query.imdbID, apikey: process.env.OMDB_API_KEY } });
+    const response = await cache.wrap(
+      `omdb:details:${req.query.imdbID}`,
+      () => omdb.get("/", { params: { i: req.query.imdbID, apikey: process.env.OMDB_API_KEY } }),
+      TTL.details
+    );
     if (response.data.Response === "False") return res.status(404).json({ error: "Movie not found" });
     return res.json(response.data);
   } catch (_error) {
@@ -26,7 +46,11 @@ router.get("/omdb/details", validateMovieQuery, async (req, res) => {
 router.get("/omdb/search", validateMovieQuery, async (req, res) => {
   try {
     const { query } = req.query;
-    const response = await omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } });
+    const response = await cache.wrap(
+      `omdb:search:${query.toLowerCase()}`,
+      () => omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } }),
+      TTL.search
+    );
     
     if (response.data.Response === "False") {
       return res.status(404).json({ error: "No movies found" });
@@ -41,7 +65,11 @@ router.get("/omdb/search", validateMovieQuery, async (req, res) => {
 router.get("/tmdb/search", validateMovieQuery, async (req, res) => {
   try {
     const { query } = req.query;
-    const response = await tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } });
+    const response = await cache.wrap(
+      `tmdb:search:${query.toLowerCase()}`,
+      () => tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } }),
+      TTL.search
+    );
 
     if (!response.data.results || response.data.results.length === 0) {
       return res.status(404).json({ error: "No movies found" });
@@ -65,7 +93,11 @@ router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
     const year = /^\d{4}$/.test(String(req.query.year || "")) ? req.query.year : undefined;
 
     const lookup = (params) =>
-      omdb.get("/", { params: { t: title, apikey: process.env.OMDB_API_KEY, ...params } });
+      cache.wrap(
+        `omdb:title:${title.toLowerCase()}:${params.y || ""}`,
+        () => omdb.get("/", { params: { t: title, apikey: process.env.OMDB_API_KEY, ...params } }),
+        TTL.details
+      );
 
     let response = await lookup(year ? { y: year } : {});
 
@@ -167,15 +199,20 @@ router.get("/discover/:catalogue", async (req, res) => {
   const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 50);
 
   try {
-    const response = await tmdb.get("/discover/movie", {
-      params: {
-        ...preset,
-        page,
-        include_adult: false,
-        "vote_count.gte": 50, // keeps the list to films enough people have seen
-        api_key: process.env.TMDB_API_KEY,
-      },
-    });
+    const response = await cache.wrap(
+      `tmdb:discover:${String(req.params.catalogue).toLowerCase()}:${page}`,
+      () =>
+        tmdb.get("/discover/movie", {
+          params: {
+            ...preset,
+            page,
+            include_adult: false,
+            "vote_count.gte": 50, // keeps the list to films enough people have seen
+            api_key: process.env.TMDB_API_KEY,
+          },
+        }),
+      TTL.discover
+    );
 
     // Return only what the cards render. The raw TMDb payload is roughly ten
     // times this size, and shipping fields nobody reads is just bandwidth.
