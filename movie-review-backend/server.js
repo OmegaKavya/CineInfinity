@@ -8,6 +8,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/authRoutes");
 const movieRoutes = require("./routes/movieRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const watchlistRoutes = require("./routes/watchlistRoutes");
 const { authError } = require("./config/firebase");
 
 const app = express();
@@ -68,6 +69,7 @@ app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHe
 app.use("/api/auth", authRoutes);
 app.use("/api/movies", movieRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/watchlist", watchlistRoutes);
 
 // A readiness check worth polling: it reports the database connection and
 // the upstream cache's hit rate, which is the number that says whether the

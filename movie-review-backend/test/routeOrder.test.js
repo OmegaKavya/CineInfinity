@@ -12,10 +12,11 @@ const test = require("node:test");
 const assert = require("node:assert");
 
 const router = require("../routes/movieRoutes");
+const reviewRouter = require("../routes/reviewRoutes");
 
 /** Every GET path this router declares, in declaration order. */
-function declaredPaths() {
-  return router.stack
+function declaredPaths(r = router) {
+  return r.stack
     .filter((layer) => layer.route)
     .map((layer) => ({
       path: layer.route.path,
@@ -68,4 +69,33 @@ test("the search endpoints the frontend calls are reachable", () => {
     order("/tmdb/search") < order("/tmdb/:title"),
     "/tmdb/search must be declared before /tmdb/:title"
   );
+});
+
+// The review router has the same hazard and more literal routes: /feed/recent,
+// /search, /me/signal and the rest all sit alongside "/:movieId", which
+// matches any single segment. Declared after it, every one of them would
+// resolve to "fetch the reviews for a film called 'search'".
+test("no review route is shadowed by an earlier parameterised route", () => {
+  const routes = declaredPaths(reviewRouter);
+
+  routes.forEach((route, index) => {
+    if (route.path.includes(":")) return;
+    const shadowedBy = routes
+      .slice(0, index)
+      .find((earlier) => shadows(earlier.path, route.path));
+
+    assert.strictEqual(
+      shadowedBy,
+      undefined,
+      `"${route.path}" is unreachable: "${shadowedBy && shadowedBy.path}" is ` +
+        `declared before it. Move the literal path above the parameterised one.`
+    );
+  });
+});
+
+test("every review endpoint the frontend calls is declared", () => {
+  const paths = declaredPaths(reviewRouter).map((r) => r.path);
+  ["/feed/recent", "/feed/trending", "/search", "/me/reviews", "/me/signal"].forEach((p) => {
+    assert.ok(paths.includes(p), `${p} is not declared at all`);
+  });
 });

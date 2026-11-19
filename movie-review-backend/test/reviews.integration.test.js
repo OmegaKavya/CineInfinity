@@ -113,15 +113,15 @@ test("a review round-trips through the database", async () => {
 
   const listed = await request("GET", "/api/reviews/tt0110357", { token: null });
   assert.strictEqual(listed.status, 200);
-  assert.strictEqual(listed.body.length, 1);
-  assert.strictEqual(listed.body[0].comment, "Still holds up.");
+  assert.strictEqual(listed.body.items.length, 1);
+  assert.strictEqual(listed.body.items[0].comment, "Still holds up.");
 });
 
 test("reviews are readable without a token", async () => {
   await request("POST", "/api/reviews", { body: newReview() });
   const listed = await request("GET", "/api/reviews/tt0110357", { token: null });
   assert.strictEqual(listed.status, 200);
-  assert.strictEqual(listed.body.length, 1);
+  assert.strictEqual(listed.body.items.length, 1);
 });
 
 test("writing without a token is refused", async () => {
@@ -141,8 +141,8 @@ test("a listing only returns the film asked for", async () => {
   await request("POST", "/api/reviews", { body: newReview({ movieId: "tt0468569" }) });
 
   const listed = await request("GET", "/api/reviews/tt0110357", { token: null });
-  assert.strictEqual(listed.body.length, 1);
-  assert.strictEqual(listed.body[0].movieId, "tt0110357");
+  assert.strictEqual(listed.body.items.length, 1);
+  assert.strictEqual(listed.body.items[0].movieId, "tt0110357");
 });
 
 test("the newest review is listed first", async () => {
@@ -151,7 +151,7 @@ test("the newest review is listed first", async () => {
   await request("POST", "/api/reviews", { body: newReview({ comment: "Second." }) });
 
   const listed = await request("GET", "/api/reviews/tt0110357", { token: null });
-  assert.strictEqual(listed.body[0].comment, "Second.");
+  assert.strictEqual(listed.body.items[0].comment, "Second.");
 });
 
 test("a rating the API rejects never reaches the database", async () => {
@@ -234,5 +234,156 @@ test("a review with no display name falls back to something printable", async ()
 test("a film with no reviews returns an empty list, not an error", async () => {
   const listed = await request("GET", "/api/reviews/tt9999999", { token: null });
   assert.strictEqual(listed.status, 200);
-  assert.deepStrictEqual(listed.body, []);
+  assert.deepStrictEqual(listed.body.items, []);
+  assert.strictEqual(listed.body.total, 0);
+  assert.strictEqual(listed.body.hasMore, false);
+  // No reviews means no average, not an average of zero, which would read
+  // as every rater giving it the lowest possible score.
+  assert.strictEqual(listed.body.average, null);
+});
+
+// ---- pagination, feeds, search and the signal ------------------------------
+
+async function seed(count, over = {}) {
+  for (let i = 0; i < count; i += 1) {
+    await request("POST", "/api/reviews", {
+      body: newReview({ comment: `Review number ${i}`, ...over }),
+    });
+  }
+}
+
+test("a listing is paginated and says whether more remain", async () => {
+  await seed(12);
+
+  const first = await request("GET", "/api/reviews/tt0110357?limit=5", { token: null });
+  assert.strictEqual(first.body.items.length, 5);
+  assert.strictEqual(first.body.total, 12);
+  assert.strictEqual(first.body.hasMore, true);
+
+  const last = await request("GET", "/api/reviews/tt0110357?limit=5&page=3", { token: null });
+  assert.strictEqual(last.body.items.length, 2);
+  // The final page must not claim more are coming, or the client loops.
+  assert.strictEqual(last.body.hasMore, false);
+});
+
+test("a caller cannot ask for an unbounded page", async () => {
+  await seed(3);
+  const huge = await request("GET", "/api/reviews/tt0110357?limit=100000", { token: null });
+  assert.ok(huge.body.limit <= 50, `limit was ${huge.body.limit}`);
+});
+
+test("a nonsense page number falls back to the first page", async () => {
+  await seed(2);
+  const bad = await request("GET", "/api/reviews/tt0110357?page=-4&limit=abc", { token: null });
+  assert.strictEqual(bad.body.page, 1);
+  assert.strictEqual(bad.body.items.length, 2);
+});
+
+test("a listing reports the film's average rating", async () => {
+  await request("POST", "/api/reviews", { body: newReview({ rating: 6 }) });
+  currentUser = { uid: "user-b", name: "Someone" };
+  await request("POST", "/api/reviews", { body: newReview({ rating: 9 }) });
+
+  const listed = await request("GET", "/api/reviews/tt0110357", { token: null });
+  assert.strictEqual(listed.body.average, 7.5);
+});
+
+test("the recent feed spans every film, newest first", async () => {
+  await request("POST", "/api/reviews", { body: newReview({ movieId: "tt1111111" }) });
+  await request("POST", "/api/reviews", { body: newReview({ movieId: "tt2222222" }) });
+
+  const feed = await request("GET", "/api/reviews/feed/recent", { token: null });
+  assert.strictEqual(feed.body.items.length, 2);
+  assert.strictEqual(feed.body.items[0].movieId, "tt2222222");
+});
+
+test("trending ranks by how many people reviewed, not by score", async () => {
+  // One perfect score from one person is not a trend.
+  await request("POST", "/api/reviews", {
+    body: newReview({ movieId: "tt_quiet", rating: 10, title: "Quiet" }),
+  });
+  for (const uid of ["user-a", "user-b", "user-c"]) {
+    currentUser = { uid, name: uid };
+    await request("POST", "/api/reviews", {
+      body: newReview({ movieId: "tt_busy", rating: 6, title: "Busy" }),
+    });
+  }
+
+  const trending = await request("GET", "/api/reviews/feed/trending", { token: null });
+  assert.strictEqual(trending.body.items[0].movieId, "tt_busy");
+  assert.strictEqual(trending.body.items[0].reviews, 3);
+  assert.strictEqual(trending.body.items[0].average, 6);
+});
+
+test("search finds words inside what people wrote", async () => {
+  await request("POST", "/api/reviews", {
+    body: newReview({ comment: "The practical effects carry it." }),
+  });
+  await request("POST", "/api/reviews", {
+    body: newReview({ movieId: "tt_other", comment: "Overlong and airless." }),
+  });
+
+  const hits = await request("GET", "/api/reviews/search?q=practical", { token: null });
+  assert.strictEqual(hits.body.total, 1);
+  assert.match(hits.body.items[0].comment, /practical/);
+});
+
+test("a search for a regex metacharacter is a search for that character", async () => {
+  await request("POST", "/api/reviews", { body: newReview({ comment: "Good (mostly)." }) });
+  // Unescaped, "(mostly" is an unterminated group and the engine throws.
+  const hits = await request("GET", "/api/reviews/search?q=(mostly", { token: null });
+  assert.strictEqual(hits.status, 200);
+  assert.strictEqual(hits.body.total, 1);
+});
+
+test("a one-character search is refused rather than returning everything", async () => {
+  await seed(3);
+  const hits = await request("GET", "/api/reviews/search?q=a", { token: null });
+  assert.strictEqual(hits.status, 400);
+});
+
+test("the signal compares a user against everyone but themselves", async () => {
+  currentUser = { uid: "user-a", name: "Kavya" };
+  await request("POST", "/api/reviews", {
+    body: newReview({ movieId: "tt_shared", rating: 10, title: "Tenet", year: "2020" }),
+  });
+  for (const uid of ["user-b", "user-c"]) {
+    currentUser = { uid, name: uid };
+    await request("POST", "/api/reviews", {
+      body: newReview({ movieId: "tt_shared", rating: 6, title: "Tenet", year: "2020" }),
+    });
+  }
+
+  currentUser = { uid: "user-a", name: "Kavya" };
+  const signal = await request("GET", "/api/reviews/me/signal");
+  assert.strictEqual(signal.body.total, 1);
+  assert.strictEqual(signal.body.comparedOn, 1);
+  // 10 against a crowd of 6, and the crowd must not include the 10 itself.
+  assert.strictEqual(signal.body.bias, 4);
+  assert.strictEqual(signal.body.contrarian[0].crowd, 6);
+  assert.strictEqual(signal.body.contrarian[0].crowdCount, 2);
+});
+
+test("the signal needs a token", async () => {
+  const signal = await request("GET", "/api/reviews/me/signal", { token: null });
+  assert.strictEqual(signal.status, 401);
+});
+
+test("my reviews returns only mine", async () => {
+  await request("POST", "/api/reviews", { body: newReview({ comment: "Mine." }) });
+  currentUser = { uid: "user-b", name: "Other" };
+  await request("POST", "/api/reviews", { body: newReview({ comment: "Theirs." }) });
+
+  currentUser = { uid: "user-a", name: "Kavya" };
+  const mine = await request("GET", "/api/reviews/me/reviews");
+  assert.strictEqual(mine.body.total, 1);
+  assert.strictEqual(mine.body.items[0].comment, "Mine.");
+});
+
+test("a review carries the film's details so a feed needs no upstream call", async () => {
+  const created = await request("POST", "/api/reviews", {
+    body: newReview({ title: "Pulp Fiction", year: "1994", poster: "https://example.test/p.jpg" }),
+  });
+  assert.strictEqual(created.body.review.title, "Pulp Fiction");
+  assert.strictEqual(created.body.review.year, "1994");
 });
