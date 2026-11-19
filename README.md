@@ -134,6 +134,44 @@ push.
 
 ---
 
+## Deployment
+
+The frontend is a static build on Firebase Hosting. The backend runs on
+Render from `movie-review-backend`, with `npm install` to build and
+`npm start` to run.
+
+Three settings, all on the backend service:
+
+| Variable | Required | What happens without it |
+|---|---|---|
+| `MONGO_URI` | for reviews | Reviews return an error; browsing and search still work |
+| `FIREBASE_SERVICE_ACCOUNT` | for sign-in | Authenticated routes answer 503; everything else works |
+| `CORS_ORIGINS` | when the frontend URL changes | The browser blocks every request from the new origin |
+
+`FIREBASE_SERVICE_ACCOUNT` takes the service-account JSON, or base64 of it.
+Base64 is safer in a dashboard field, which tends to mangle the newlines in
+the private key:
+
+```bash
+base64 -i firebaseServiceAccount.json | pbcopy
+```
+
+The server does not exit when a setting is missing or a dependency is
+unreachable. It binds its port, logs the specific fault, and reports it:
+
+```bash
+curl https://<service>/health
+```
+
+A healthy server returns 200. A degraded one returns 503 and names the
+subsystem that is down, so a bad deploy is one request to diagnose rather
+than a scroll through logs. This matters on a host that redeploys per commit:
+exiting on a missing variable turns one wrong setting into a crash loop, a
+failed deploy and a notification on every push, while taking down the parts
+of the API that never needed that variable.
+
+---
+
 ## Known limits
 
 - Reviews are not paginated. Fine at this size, wrong at a larger one.

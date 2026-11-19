@@ -8,6 +8,7 @@ require("dotenv").config();
 const authRoutes = require("./routes/authRoutes");
 const movieRoutes = require("./routes/movieRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const { authError } = require("./config/firebase");
 
 const app = express();
 
@@ -74,12 +75,21 @@ app.use("/api/reviews", reviewRoutes);
 app.get("/health", (_req, res) => {
   const states = ["disconnected", "connected", "connecting", "disconnecting"];
   const dbState = states[mongoose.connection.readyState] || "unknown";
-  const healthy = mongoose.connection.readyState === 1;
+  const dbReady = mongoose.connection.readyState === 1;
+  const firebaseFault = authError();
+
+  // Degraded, not down. The server is serving; one subsystem is not. The
+  // body names which, so a failing deploy can be diagnosed from one curl
+  // instead of from scrollback.
+  const healthy = dbReady && !firebaseFault;
 
   res.status(healthy ? 200 : 503).json({
     status: healthy ? "ok" : "degraded",
     uptimeSeconds: Math.round(process.uptime()),
     database: dbState,
+    databaseError: dbReady ? null : databaseError,
+    auth: firebaseFault ? "unavailable" : "ok",
+    authError: firebaseFault ? firebaseFault.message : null,
     upstreamCache: movieRoutes.cacheStats ? movieRoutes.cacheStats() : null,
   });
 });
@@ -100,14 +110,45 @@ app.use((err, _req, res, _next) => {
 });
 
 // MongoDB Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected"))
-  .catch((err) => {
-    console.error("❌ MongoDB Connection Error:", err);
-    process.exit(1);
-  });
+//
+// This used to process.exit(1) on a failed connect. On a host that gives a
+// new service a few seconds to bind a port, and redeploys on every commit,
+// that turns one bad or absent MONGO_URI into a crash loop: the deploy is
+// marked failed, a notification goes out, and the logs show only the driver
+// error with no indication of which setting is wrong.
+//
+// So a failure is recorded instead of fatal. The server still binds, /health
+// reports "degraded" with the reason, and mongoose retries in the
+// background, which means a database that comes up late recovers on its own
+// rather than needing a manual redeploy.
+let databaseError = null;
+
+if (!process.env.MONGO_URI) {
+  databaseError = "MONGO_URI is not set.";
+  console.error(
+    "MONGO_URI is not set, so reviews are unavailable. Film browsing and " +
+      "search are unaffected."
+  );
+} else {
+  mongoose
+    .connect(process.env.MONGO_URI)
+    .then(() => {
+      databaseError = null;
+      console.log("MongoDB connected");
+    })
+    .catch((err) => {
+      databaseError = err.message;
+      console.error("MongoDB connection failed:", err.message);
+    });
+}
 
 // Start Server
+//
+// Listening is unconditional and happens regardless of the database or the
+// Firebase credential. A host that waits for a port and never sees one fails
+// the deploy without ever reporting the real cause; binding first means the
+// fault shows up in /health, where it names itself.
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 CineInfinity API running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`CineInfinity API running on port ${PORT}`));
+
+module.exports = app;

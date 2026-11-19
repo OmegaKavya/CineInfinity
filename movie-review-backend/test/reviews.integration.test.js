@@ -21,11 +21,20 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 
 // ---- stub Firebase before the routes pull it in ----------------------------
 let currentUser = { uid: "user-a", name: "Kavya" };
+// Null means Firebase initialised; set it to an Error to simulate a server
+// deployed without a credential.
+let firebaseFault = null;
 
 const realLoad = Module._load;
 Module._load = function patched(request, parent, isMain) {
   if (request.endsWith("config/firebase")) {
     return {
+      // config/firebase also exports authError(): the routes call it to tell
+      // a credential fault apart from a bad token. A stub missing it made
+      // every authenticated request throw a 500 instead of failing the way
+      // the test meant to exercise.
+      authError: () => firebaseFault,
+      authAvailable: () => firebaseFault === null,
       auth: {
         verifyIdToken: async (token) => {
           if (token === "bad") throw new Error("invalid token");
