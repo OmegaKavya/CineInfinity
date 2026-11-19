@@ -2,9 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 64x64" />
+    <!-- An SVG icon is preferred where it is supported: it stays sharp on a
+         high density display, where a 32px bitmap does not. -->
+    <link rel="icon" type="image/svg+xml" href="/icon-small.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0d0d0f" />
     <meta
       name="description"
       content="Reviews and ratings for Hollywood, Bollywood and anime, plus a resolver that works out the order to watch a series in rather than listing it by release date."
@@ -16,7 +20,7 @@
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
+    
     <link rel="manifest" href="/manifest.json" />
     <title>CineInfinity</title>
   </head>
