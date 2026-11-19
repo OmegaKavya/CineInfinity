@@ -13,7 +13,7 @@ import { api, authHeaders, readableError } from '../api/client';
  * Signal, which cannot exist without knowing whose ratings they are.
  */
 export default function YouPage() {
-  const { user, signIn } = useAuth();
+  const { user, signIn, signingIn } = useAuth();
   const { items: watchlist, loading: watchlistLoading } = useWatchlistContext();
   const [mine, setMine] = useState({ items: [], total: 0, loading: true, error: '' });
 
@@ -49,8 +49,8 @@ export default function YouPage() {
           watchlist, your reviews in one place, and a reading of how your
           ratings compare with everyone else's.
         </p>
-        <button type="button" className="auth-button" onClick={signIn}>
-          Sign in with Google
+        <button type="button" className="auth-button" onClick={signIn} disabled={signingIn}>
+          {signingIn ? 'Opening Google…' : 'Sign in with Google'}
         </button>
       </section>
     );

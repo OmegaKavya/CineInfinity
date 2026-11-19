@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { auth, signInWithGoogle, logout } from '../firebase';
 
 /**
@@ -22,6 +22,11 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // A failed sign-in has to reach the screen. Previously it was swallowed in
+  // firebase.js, so a misconfigured domain looked like a button that did
+  // nothing at all.
+  const [authError, setAuthError] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -31,9 +36,30 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
+  const signIn = useCallback(async () => {
+    setAuthError('');
+    setSigningIn(true);
+    try {
+      return await signInWithGoogle();
+    } catch (error) {
+      setAuthError(error.message);
+      return null;
+    } finally {
+      setSigningIn(false);
+    }
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, signIn: signInWithGoogle, signOut: logout }),
-    [user, loading]
+    () => ({
+      user,
+      loading,
+      signingIn,
+      authError,
+      signIn,
+      signOut: logout,
+      clearAuthError: () => setAuthError(''),
+    }),
+    [user, loading, signingIn, authError, signIn]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

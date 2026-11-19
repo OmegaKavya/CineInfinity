@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import AuthError from './components/AuthError';
 import HomePage from './pages/HomePage';
 import FilmPage from './pages/FilmPage';
 import AnimePage from './pages/AnimePage';
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <div className="app-container">
       <Navbar search={search} />
+      <AuthError />
 
       <Routes>
         <Route path="/" element={<HomePage />} />

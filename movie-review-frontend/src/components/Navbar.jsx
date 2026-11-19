@@ -12,7 +12,7 @@ import SearchBar from './SearchBar';
  * stayed open over whatever you were reading.
  */
 export default function Navbar({ search }) {
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn, signOut, signingIn } = useAuth();
   const { isDark, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -90,7 +90,9 @@ export default function Navbar({ search }) {
               )}
             </>
           ) : (
-            <button className="auth-button" onClick={signIn}>Log in</button>
+            <button className="auth-button" onClick={signIn} disabled={signingIn}>
+              {signingIn ? 'Opening…' : 'Log in'}
+            </button>
           )}
         </div>
       </div>
