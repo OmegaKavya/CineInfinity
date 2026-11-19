@@ -66,9 +66,18 @@ jobs:
 
       - run: npm ci
 
-      # These suites are pure: validators, the auth gate with a stubbed
-      # verifier, the route table and the cache. No database, no API keys,
-      # nothing to provision.
+      # The integration suite starts a real MongoDB through
+      # mongodb-memory-server, which downloads a mongod binary on first use.
+      # Caching it keeps a cold run from paying that download every time.
+      - name: Cache MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
+      # Validators, the auth gate with a stubbed verifier, the route table,
+      # the cache, the credential loader, and the review API end to end
+      # against a throwaway database. No API keys, nothing to provision.
       - name: Tests
         run: npm test
 

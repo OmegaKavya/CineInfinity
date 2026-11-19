@@ -23,5 +23,8 @@
   },
   "overrides": {
     "jws": "3.2.3"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0"
   }
 }
