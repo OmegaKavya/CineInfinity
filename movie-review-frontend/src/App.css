@@ -529,12 +529,43 @@ body.dark-mode .navbar-search {
 }
 
 /* Reviews Section */
+/* Shares the film card's measure so the two line up as one column rather
+   than a constrained card sitting above a full-bleed panel. */
 .reviews-section {
-  margin-top: 40px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(255, 0, 127, 0.5);
+  max-width: 68rem;
+  margin: 1.5rem auto 0;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+  background: linear-gradient(135deg, var(--panel), var(--panel-raised));
+  border: 1px solid rgba(255, 0, 127, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
+}
+
+.reviews-section h3 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+.reviews-section > p {
+  color: var(--ink-dim);
+}
+
+.add-review-button {
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--brand-gradient);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+
+.add-review-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-soft);
 }
 
 /* Responsive Reviews Section */

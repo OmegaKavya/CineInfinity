@@ -39,11 +39,20 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "")
 
 const origins = allowedOrigins.length ? allowedOrigins : DEFAULT_ORIGINS;
 
+// Outside production, any localhost port is allowed. Vite picks a different
+// port whenever one is busy, and chasing that in a hard-coded list means the
+// app intermittently looks broken on a developer's machine for a reason that
+// has nothing to do with the code.
+const isLocalhost = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+
+const inProduction = process.env.NODE_ENV === "production";
+
 app.use(cors({
   origin: function (origin, callback) {
     // No Origin header means a same-origin or non-browser caller (curl, a
     // health check); those are not what CORS is protecting against.
-    if (!origin || origins.includes(origin)) {
+    if (!origin || origins.includes(origin) || (!inProduction && isLocalhost(origin))) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} is not allowed. Set CORS_ORIGINS to permit it.`));
