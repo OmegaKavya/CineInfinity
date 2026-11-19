@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import reportWebVitals from './reportWebVitals';
 
 /**
@@ -15,11 +16,13 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

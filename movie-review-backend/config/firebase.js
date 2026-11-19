@@ -6,12 +6,14 @@
 // "Cannot read properties of undefined (reading 'cert')". The modular
 // subpath exports are the supported API from 12 onward.
 //
-// The service-account file stays out of git; see .env.example for the
-// variables and the README for where to put the key.
+// The credential comes from FIREBASE_SERVICE_ACCOUNT where one is set and
+// the local file otherwise, so a deploy needs no secret copied onto the host
+// by hand. See lib/serviceAccount.js.
 const { initializeApp, cert, getApps } = require("firebase-admin/app");
 const { getAuth } = require("firebase-admin/auth");
+const { loadServiceAccount } = require("../lib/serviceAccount");
 
-const serviceAccount = require("../firebaseServiceAccount.json");
+const serviceAccount = loadServiceAccount();
 
 // Guarded so a re-import (or a test importing a route) cannot throw
 // "The default Firebase app already exists".

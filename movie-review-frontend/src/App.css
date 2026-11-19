@@ -1157,3 +1157,50 @@ button:hover {
 .hero-eyebrow {
   color: #fff;
 }
+
+/* ---------- render failure ---------- */
+
+.crash {
+  max-width: 34rem;
+  margin: 18vh auto;
+  padding: 2rem;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid rgba(255, 0, 127, 0.25);
+  border-radius: 18px;
+}
+
+.crash h2 {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.6rem;
+}
+
+.crash p {
+  color: var(--ink-dim);
+  margin-bottom: 1.4rem;
+}
+
+.crash__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.crash__button {
+  padding: 0.75rem 1.5rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--brand-gradient);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.crash__button--quiet {
+  background: none;
+  border: 1px solid var(--hairline);
+  color: var(--ink-dim);
+}
