@@ -2,7 +2,7 @@
 .App {
   text-align: center;
   font-family: 'Roboto', sans-serif;
-  background: linear-gradient(120deg, #1a1a2e, #0f3460);
+  background: linear-gradient(120deg, var(--surface-1), var(--surface-3));
   color: white;
   min-height: 100vh;
 }
@@ -35,7 +35,7 @@
 
 /* Header */
 .App-header {
-  background: linear-gradient(120deg, #16213e, #0f3460);
+  background: linear-gradient(120deg, var(--surface-2), var(--surface-3));
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -58,7 +58,7 @@
   align-items: center;
   padding: 15px 20px;
   background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 4px 10px var(--veil);
   position: fixed;
   top: 0;
   width: 100%;
@@ -67,7 +67,7 @@
 }
 
 .navbar-scrolled {
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--veil);
   backdrop-filter: blur(10px);
 }
 
@@ -138,7 +138,7 @@
   position: absolute;
   top: 50px;
   right: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--veil);
   border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   padding: 10px;
@@ -161,14 +161,10 @@
   background: linear-gradient(90deg, #7300ff, #ff007f);
 }
 
-/* Dark Mode Styles */
-body.dark-mode {
-  background-color: #121212;
-  color: #ffffff;
-}
-
+/* Dark mode is expressed through the tokens in index.css; this file only
+   needs the handful of component-level differences. */
 body.dark-mode .navbar {
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--veil);
 }
 
 body.dark-mode .navbar-search {
@@ -229,7 +225,7 @@ body.dark-mode .navbar-search {
   align-items: center;
   height: 100vh;
   padding: 20px;
-  background: linear-gradient(120deg, #1a1a2e, #16213e);
+  background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
   position: relative;
   overflow: hidden;
   animation: backgroundShift 10s infinite alternate; /* Subtle background animation */
@@ -237,17 +233,17 @@ body.dark-mode .navbar-search {
 
 @keyframes backgroundShift {
   0% {
-    background: linear-gradient(120deg, #1a1a2e, #16213e);
+    background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
   }
   100% {
-    background: linear-gradient(120deg, #0f3460, #1a1a2e);
+    background: linear-gradient(120deg, var(--surface-3), var(--surface-1));
   }
 }
 
 .login-content {
   text-align: center;
   padding: 30px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   border-radius: 15px;
   box-shadow: 0 10px 20px rgba(255, 0, 127, 0.5);
   max-width: 400px;
@@ -328,7 +324,7 @@ body.dark-mode .navbar-search {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--veil);
   z-index: 0; /* Ensure overlay is behind content */
 }
 
@@ -361,7 +357,7 @@ body.dark-mode .navbar-search {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--veil);
   z-index: 0; /* Ensure overlay is behind content */
 }
 
@@ -371,7 +367,7 @@ body.dark-mode .navbar-search {
   flex-direction: column;
   align-items: center;
   padding: 60px 20px;
-  background: linear-gradient(120deg, #1a1a2e, #16213e);
+  background: linear-gradient(120deg, var(--surface-1), var(--surface-2));
   min-height: 100vh;
 }
 
@@ -504,11 +500,11 @@ body.dark-mode .navbar-search {
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
   padding: 40px;
-  background: linear-gradient(120deg, #1a1a2e, #0f3460);
+  background: linear-gradient(120deg, var(--surface-1), var(--surface-3));
 }
 
 .movie-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   border-radius: 20px;
   padding: 20px;
   text-align: center;
@@ -538,7 +534,7 @@ body.dark-mode .navbar-search {
   background: linear-gradient(135deg, var(--panel), var(--panel-raised));
   border: 1px solid rgba(255, 0, 127, 0.18);
   border-radius: 18px;
-  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 30px 70px -40px var(--veil);
 }
 
 .reviews-section h3 {
@@ -593,7 +589,7 @@ body.dark-mode .navbar-search {
   padding: 10px;
   border-radius: 10px;
   border: 2px solid #ff007f;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   color: white;
   font-size: 16px;
   outline: none;
@@ -634,7 +630,7 @@ body.dark-mode .navbar-search {
 }
 
 .review-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   border-radius: 15px;
   padding: 15px;
   margin-bottom: 15px;
@@ -691,7 +687,7 @@ body.dark-mode .navbar-search {
   padding: 10px;
   border-radius: 10px;
   border: 2px solid #ff007f;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hairline);
   color: white;
   font-size: 16px;
   outline: none;
@@ -977,14 +973,35 @@ button:hover {
 }
 
 /* Two layers: a vertical fade so text at the bottom always has contrast,
-   and a brand wash so the backdrops sit in the product's palette. */
+   and a brand wash so the backdrops sit in the product's palette.
+   The hero keeps light text in both themes, because it sits on a
+   photograph either way; the dark fade is what makes that legible, so it
+   stays dark even in light mode and hands off to the page below. */
 .hero-veil {
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(to top, var(--bg) 2%, rgba(18, 18, 18, 0.72) 38%, rgba(18, 18, 18, 0.25) 100%),
+    linear-gradient(to top, var(--bg) 2%, rgba(18, 18, 18, 0.78) 34%, rgba(18, 18, 18, 0.3) 100%),
     linear-gradient(115deg, rgba(255, 0, 127, 0.22), transparent 45%, rgba(115, 0, 255, 0.28));
+}
+
+
+
+.hero-title {
+  background: linear-gradient(120deg, #fff 35%, var(--neon) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-sub,
+.hero-note {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.hero-eyebrow {
+  color: #ffb3d9;
 }
 
 .hero-content {
@@ -1049,7 +1066,7 @@ button:hover {
 }
 
 .hero-search input::placeholder {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--ink-faint);
 }
 
 .hero-search input:focus {
@@ -1112,7 +1129,7 @@ button:hover {
   font-size: 0.8rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .hero-dots {
@@ -1187,7 +1204,7 @@ button:hover {
 .similar {
   margin-top: 1.8rem;
   padding-top: 1.4rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--hairline);
 }
 
 .similar__head h4 {
@@ -1280,4 +1297,13 @@ button:hover {
   .similar__list img {
     transition: none;
   }
+}
+
+/* The hero's own copy is always on the photograph, never on the page. */
+.hero-title,
+.hero-sub,
+.hero-note,
+.hero-caption,
+.hero-eyebrow {
+  color: #fff;
 }

@@ -1,36 +1,72 @@
 /* ===================================================================
    Design tokens.
-   These are the colours already used across the app, lifted out of the
-   stylesheets rather than chosen fresh, so nothing changes appearance.
-   #ff007f and #7300ff appear 46 and 22 times respectively; having them
-   in one place is what makes a theme change possible at all.
+
+   ThemeProvider puts .dark-mode on <body> for dark and removes it for
+   light, so :root carries the light values and body.dark-mode overrides
+   them. Previously both themes resolved to the same near-black, which
+   is why the Light Mode button appeared to do nothing: it toggled a
+   class whose only job was to re-apply the colours already in force.
+
+   The brand hues stay across both themes; neon on white needs the
+   deeper magenta for text to stay legible, which is what --neon-ink is.
    =================================================================== */
 
 :root {
   /* brand */
   --neon: #ff007f;
   --neon-deep: #e60073;
-  --neon-soft: #ffb3d9;
+  --neon-soft: #c2185b;
+  --neon-ink: #c2185b;
   --violet: #7300ff;
   --brand-gradient: linear-gradient(135deg, var(--neon), var(--violet));
 
-  /* surfaces, darkest to lightest */
+  /* light surfaces */
+  --bg: #f6f5f8;
+  --surface-1: #ffffff;
+  --surface-2: #f0eef4;
+  --surface-3: #e7e3ee;
+  --panel: #ffffff;
+  --panel-raised: #f3f1f7;
+  --hairline: rgba(18, 18, 18, 0.12);
+  --veil: rgba(255, 255, 255, 0.72);
+
+  /* ink */
+  --ink: #16141c;
+  --ink-dim: #585463;
+  --ink-faint: #7b7686;
+
+  /* effects */
+  --glow-neon: 0 0 20px rgba(255, 0, 127, 0.3);
+  --glow-soft: 0 0 36px -14px rgba(255, 0, 127, 0.45);
+  --shadow-card: 0 24px 60px -40px rgba(18, 18, 18, 0.45);
+  --radius-pill: 999px;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  color-scheme: light;
+}
+
+body.dark-mode {
+  --neon-soft: #ffb3d9;
+  --neon-ink: #ff007f;
+
   --bg: #121212;
   --surface-1: #1a1a2e;
   --surface-2: #16213e;
   --surface-3: #0f3460;
   --panel: #1e1e2f;
   --panel-raised: #2a2a3b;
+  --hairline: rgba(255, 255, 255, 0.12);
+  --veil: rgba(18, 18, 18, 0.72);
 
-  /* ink */
   --ink: #ffffff;
   --ink-dim: #ccc;
+  --ink-faint: rgba(255, 255, 255, 0.45);
 
-  /* effects */
   --glow-neon: 0 0 24px rgba(255, 0, 127, 0.45);
   --glow-soft: 0 0 40px -12px rgba(255, 0, 127, 0.6);
-  --radius-pill: 999px;
-  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --shadow-card: 0 30px 70px -40px rgba(0, 0, 0, 0.9);
+
+  color-scheme: dark;
 }
 
 body {
@@ -55,10 +91,11 @@ code {
 }
 
 body {
-  background-color: #121212;
-  color: #ffffff;
+  background-color: var(--bg);
+  color: var(--ink);
   font-size: 16px;
   line-height: 1.6;
+  transition: background-color 0.25s var(--ease-out), color 0.25s var(--ease-out);
 }
 
 /* Ensuring Full Height */
