@@ -122,7 +122,11 @@ export default function App() {
         />
 
         {franchise && (
-          <WatchOrder anime={franchise} onClose={() => setFranchise(null)} />
+          <WatchOrder
+            anime={franchise}
+            onClose={() => setFranchise(null)}
+            onSelect={setFranchise}
+          />
         )}
 
         <Catalogue

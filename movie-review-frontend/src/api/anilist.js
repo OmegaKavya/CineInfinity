@@ -45,6 +45,8 @@ function toEntry(media) {
     cover: media.coverImage?.large || null,
     banner: media.bannerImage || null,
     siteUrl: media.siteUrl,
+    genres: media.genres || [],
+    tags: media.tags || [],
     relations: (media.relations?.edges || []).map((edge) => ({
       id: edge.node.id,
       relationType: edge.relationType,
@@ -64,6 +66,11 @@ const MEDIA_FIELDS = `
   coverImage { large }
   bannerImage
   siteUrl
+  genres
+  # Ranked tag profile, which is what the "if you liked this" scoring reads.
+  # Spoiler flags come with it so a recommendation cannot be made on, or
+  # explained by, something that gives the plot away.
+  tags { name rank isGeneralSpoiler isMediaSpoiler }
   relations { edges { relationType node { id type } } }
 `;
 

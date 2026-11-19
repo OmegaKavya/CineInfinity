@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchEntry } from '../api/anilist';
 import { collectFranchise, watchOrders } from '../lib/franchiseGraph';
+import SimilarAnime from './SimilarAnime';
 
 const VIEWS = [
   { id: 'story', label: 'Story order', hint: 'Chronological. What most people mean by watch order.' },
@@ -18,7 +19,7 @@ const KIND_LABEL = { main: null, side: 'side story', recap: 'recap', promo: 'pro
  * released meets the ending first. Showing both side by side makes the
  * problem visible rather than asking the viewer to trust one list.
  */
-export default function WatchOrder({ anime, onClose }) {
+export default function WatchOrder({ anime, onClose, onSelect }) {
   const [view, setView] = useState('story');
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,10 @@ export default function WatchOrder({ anime, onClose }) {
 
   // A franchise opened from ?anime=<id> arrives with no title, so take it
   // from the entry the resolver found rather than leaving the heading blank.
+  const seedEntry =
+    orders?.release?.find((entry) => entry.id === anime.id) || null;
+  const franchiseIds = orders ? orders.release.map((entry) => entry.id) : [];
+
   const seriesTitle =
     anime.title ||
     orders?.release?.find((entry) => entry.id === anime.id)?.title ||
@@ -148,6 +153,14 @@ export default function WatchOrder({ anime, onClose }) {
         <p className="watch-order__note">
           {orders.story.length - list.length} entries hidden: recaps, promos and side stories.
         </p>
+      )}
+
+      {seedEntry && (
+        <SimilarAnime
+          seed={seedEntry}
+          excludeIds={franchiseIds}
+          onSelect={onSelect}
+        />
       )}
     </section>
   );
