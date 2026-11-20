@@ -39,6 +39,13 @@
   --glow-neon: 0 0 20px rgba(255, 0, 127, 0.3);
   --glow-soft: 0 0 36px -14px rgba(255, 0, 127, 0.45);
   --shadow-card: 0 24px 60px -40px rgba(18, 18, 18, 0.45);
+  /* The lemniscate signature. Each theme gets its own pair rather than reusing
+     --neon/--violet directly: violet is a strong deep end against a near-white
+     page and nearly invisible against #121212, so the dark pair is lifted. */
+  --sig-a: #7300ff;
+  --sig-b: #c2185b;
+  --sig-glow: rgba(194, 24, 91, 0.26);
+
   --radius-pill: 999px;
   --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
 
@@ -48,6 +55,9 @@
 body.dark-mode {
   --neon-soft: #ffb3d9;
   --neon-ink: #ff007f;
+  --sig-a: #ff007f;
+  --sig-b: #b14bff;
+  --sig-glow: rgba(255, 0, 127, 0.42);
 
   --bg: #121212;
   --surface-1: #1a1a2e;

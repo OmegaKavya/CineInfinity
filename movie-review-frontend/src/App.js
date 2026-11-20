@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Signature from './components/Signature';
 import AuthError from './components/AuthError';
 import HomePage from './pages/HomePage';
 import FilmPage from './pages/FilmPage';
@@ -64,6 +65,13 @@ export default function App() {
           }
         />
       </Routes>
+
+      {/* The signature is in the shell rather than on the home page, so every
+          address signs itself: a shared watch order is a real URL and is just
+          as likely to be someone's first sight of the site. */}
+      <footer className="site-foot">
+        <Signature note="CineInfinity" />
+      </footer>
     </div>
   );
 }

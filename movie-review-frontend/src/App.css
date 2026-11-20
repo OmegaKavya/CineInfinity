@@ -1715,3 +1715,12 @@ button:hover {
 @media (max-width: 768px) {
   .auth-error { top: 64px; }
 }
+
+
+/* The signature footer. Hairline rule above it and generous space, so the mark
+   reads as a sign-off rather than as one more piece of interface. */
+.site-foot {
+  margin-top: 4.5rem;
+  padding: 2.5rem 1rem 3rem;
+  border-top: 1px solid var(--hairline);
+}
