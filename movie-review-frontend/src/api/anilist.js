@@ -15,16 +15,34 @@
  * UI can actually explain. The query documents live on the server, so this
  * sends an operation name rather than arbitrary GraphQL.
  */
-import { api } from './client';
+import { api, looksAsleep, wakeBackend } from './client';
 
-async function query(operation, variables) {
+async function query(operation, variables, { retried = false } = {}) {
   try {
-    const { data } = await api.post('/anilist/graphql', { operation, variables });
+    const { data } = await api.post(
+      '/anilist/graphql',
+      { operation, variables },
+      // Generous once, because the first call after the instance sleeps is
+      // competing with a cold start.
+      retried ? { timeout: 45000 } : undefined
+    );
     return data.data;
   } catch (error) {
     if (error.response?.status === 429) {
       throw new Error('AniList is rate-limiting us. Try again in a moment.');
     }
+
+    // A sleeping instance is not a broken feature. Start it, wait, try once
+    // more, and only then report a failure.
+    if (!retried && looksAsleep(error)) {
+      const awake = await wakeBackend();
+      if (awake) return query(operation, variables, { retried: true });
+      throw new Error(
+        'The server was asleep and did not wake in time. It is on a free ' +
+          'instance; give it a moment and try again.'
+      );
+    }
+
     throw new Error(error.response?.data?.error || 'Could not reach AniList.');
   }
 }

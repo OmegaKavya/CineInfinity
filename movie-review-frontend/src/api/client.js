@@ -34,6 +34,41 @@ export const api = axios.create({
 });
 
 /**
+ * Wake the backend and wait for it.
+ *
+ * The free instance sleeps after fifteen minutes idle and takes the better
+ * part of a minute to start. Every normal request gives up at fifteen
+ * seconds, so the first visitor after a quiet spell saw a timeout rather
+ * than a slow page, and only the parts of the site that go through our
+ * server broke, which made it look like those features were simply faulty.
+ *
+ * /health is outside /api and does nothing but answer, so this is the
+ * cheapest way to find out whether the server is up and to start it if not.
+ * Concurrent callers share one attempt.
+ */
+let waking = null;
+
+export function wakeBackend() {
+  if (!waking) {
+    waking = axios
+      .get(`${origin}/health`, { timeout: 90000 })
+      .then(() => true)
+      .catch(() => false)
+      .finally(() => {
+        // Let a later call try again; the server may have slept since.
+        setTimeout(() => { waking = null; }, 60000);
+      });
+  }
+  return waking;
+}
+
+/** True for the failures a sleeping or restarting instance produces. */
+export function looksAsleep(error) {
+  if (!error?.response) return true; // timeout, DNS, connection refused
+  return [502, 503, 504].includes(error.response.status);
+}
+
+/**
  * Authorization header for a Firebase user.
  *
  * Takes the user rather than reaching for module state, so callers cannot
