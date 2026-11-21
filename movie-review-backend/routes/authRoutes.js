@@ -18,7 +18,10 @@ router.post("/login", async (req, res) => {
 
   const { token } = req.body;
   try {
-    const decodedToken = await auth.verifyIdToken(token);
+    // checkRevoked, matching middleware/auth.js. Without it a token revoked
+    // in Firebase still decodes here until it expires, so a signed-out or
+    // disabled account could still read its profile back from this route.
+    const decodedToken = await auth.verifyIdToken(token, true);
     const user = { uid: decodedToken.uid, email: decodedToken.email };
 
     // Keep the response contract compatible for existing callers.
