@@ -16,6 +16,18 @@ const { authError } = require("./config/firebase");
 const app = express();
 
 // Middleware
+
+// Render puts exactly one proxy in front of this service. Without this,
+// `req.ip` is the proxy's address for every visitor, so the limiters below
+// share one bucket across all of them: the 300-request ceiling applies to the
+// whole site rather than to each caller, and the auth limit of 20 is shared
+// too. That throttles legitimate users while barely inconveniencing an abuser.
+//
+// 1, not `true`. `true` trusts the entire X-Forwarded-For chain, so a caller
+// can prepend an address of their choosing and present a fresh one per
+// request, which disables the limiters for the only caller they are for.
+app.set("trust proxy", 1);
+
 app.disable("x-powered-by");
 app.use(helmet());
 app.use(express.json({ limit: "100kb" }));
