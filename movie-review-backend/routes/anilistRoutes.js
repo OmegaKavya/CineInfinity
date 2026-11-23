@@ -1,5 +1,6 @@
 const express = require("express");
 const axios = require("axios");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
 
@@ -28,8 +29,42 @@ const ENDPOINT = "https://graphql.anilist.co";
 // them, which is their rate limit to spend and our IP to get blocked.
 const OPERATIONS = require("../lib/anilistQueries");
 
+// The operation allowlist stops arbitrary queries and the cache absorbs
+// repeats, but neither bounds how often one caller causes an upstream
+// request. `variables` is part of the cache key, so distinct variables evict
+// the working set and every request after that is forwarded to AniList from
+// this server's address - the one that gets blocked. The global limiter in
+// server.js is a ceiling for the whole service; this one is for this route.
+//
+// The portfolio carries its own copy of this proxy and was given the same
+// limit first. This file was missed, which is the recurring shape of defects
+// in these repositories: the second copy of something.
+const anilistLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please try again shortly." },
+});
+
+const MAX_VARIABLE_KEYS = 12;
+const MAX_VARIABLES_BYTES = 2048;
+
+function variablesAreAcceptable(variables) {
+  if (variables === undefined || variables === null) return true;
+  if (typeof variables !== "object" || Array.isArray(variables)) return false;
+  if (Object.keys(variables).length > MAX_VARIABLE_KEYS) return false;
+  let serialised;
+  try {
+    serialised = JSON.stringify(variables);
+  } catch {
+    return false; // circular, so not serialisable into a cache key either
+  }
+  return serialised.length <= MAX_VARIABLES_BYTES;
+}
+
 module.exports = function createAnilistRouter(cache) {
-  router.post("/graphql", async (req, res) => {
+  router.post("/graphql", anilistLimiter, async (req, res) => {
     const { operation, variables } = req.body || {};
 
     const document = OPERATIONS[operation];
@@ -37,6 +72,10 @@ module.exports = function createAnilistRouter(cache) {
       return res.status(400).json({
         error: `Unknown operation. Expected one of: ${Object.keys(OPERATIONS).join(", ")}.`,
       });
+    }
+
+    if (!variablesAreAcceptable(variables)) {
+      return res.status(400).json({ error: "Invalid variables." });
     }
 
     // Variables are part of the cache identity, so "popular page 2" and
