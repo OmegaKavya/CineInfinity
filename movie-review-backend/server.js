@@ -30,8 +30,6 @@ app.set("trust proxy", 1);
 
 app.disable("x-powered-by");
 app.use(helmet());
-app.use(express.json({ limit: "100kb" }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: "draft-8", legacyHeaders: false }));
 
 // CORS Config
 //
@@ -77,11 +75,23 @@ app.use(cors({
     if (!origin || origins.includes(origin) || (!inProduction && isLocalhost(origin))) {
       callback(null, true);
     } else {
-      callback(new Error(`Origin ${origin} is not allowed. Set CORS_ORIGINS to permit it.`));
+      // Tagged with its status. The error handler used to match on the
+      // message text, which had since been reworded, so every refused origin
+      // fell through to a logged 500 instead of a 403.
+      callback(Object.assign(
+        new Error(`Origin ${origin} is not allowed. Set CORS_ORIGINS to permit it.`),
+        { status: 403, corsRejected: true }
+      ));
     }
   },
   credentials: true
 }));
+
+// After CORS, so a 429 still carries Access-Control-Allow-Origin. Mounted
+// before it, a rate-limited browser saw an opaque network error rather than
+// "too many requests".
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300, standardHeaders: "draft-8", legacyHeaders: false }));
+app.use(express.json({ limit: "100kb" }));
 
 app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: "draft-8", legacyHeaders: false }));
 
@@ -131,7 +141,7 @@ app.use((err, _req, res, _next) => {
   if (err instanceof SyntaxError && "body" in err) {
     return res.status(400).json({ error: "Invalid JSON request body" });
   }
-  if (err.message === "Not allowed by CORS") {
+  if (err.corsRejected) {
     return res.status(403).json({ error: "Origin is not allowed" });
   }
   console.error("Unhandled request error", err);
@@ -177,7 +187,12 @@ if (!process.env.MONGO_URI) {
 // Firebase credential. A host that waits for a port and never sees one fails
 // the deploy without ever reporting the real cause; binding first means the
 // fault shows up in /health, where it names itself.
+//
+// Only when run directly (`node server.js`, which is what Render runs), so a
+// test can require the app and bind it to a free port of its own.
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`CineInfinity API running on port ${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`CineInfinity API running on port ${PORT}`));
+}
 
 module.exports = app;

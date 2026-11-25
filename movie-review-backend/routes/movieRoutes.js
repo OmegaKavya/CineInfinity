@@ -1,6 +1,6 @@
 const express = require("express");
 const axios = require("axios");
-const { validateMovieQuery } = require("../middleware/validate");
+const { validateMovieQuery, validateImdbId } = require("../middleware/validate");
 const { createCache } = require("../lib/cache");
 
 const router = express.Router();
@@ -24,7 +24,7 @@ const cache = createCache({ max: 1000, ttlMs: TTL.search });
 /** Exposed so /health can report whether the cache is doing its job. */
 router.cacheStats = () => cache.stats();
 
-router.get("/omdb/details", validateMovieQuery, async (req, res) => {
+router.get("/omdb/details", validateImdbId, async (req, res) => {
   try {
     const response = await cache.wrap(
       `omdb:details:${req.query.imdbID}`,
@@ -122,7 +122,11 @@ router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
 router.get("/tmdb/:title", validateMovieQuery, async (req, res) => {
   try {
     const { title } = req.params;
-    const response = await tmdb.get("/search/movie", { params: { query: title, api_key: process.env.TMDB_API_KEY } });
+    const response = await cache.wrap(
+      `tmdb:title:${title.toLowerCase()}`,
+      () => tmdb.get("/search/movie", { params: { query: title, api_key: process.env.TMDB_API_KEY } }),
+      TTL.search
+    );
 
     if (!response.data.results || response.data.results.length === 0) {
       return res.status(404).json({ error: "Movie not found" });
@@ -143,11 +147,19 @@ router.get("/search", validateMovieQuery, async (req, res) => {
   try {
     const { query } = req.query;
 
-    // Fetch suggestions from OMDb
-    const omdbResponse = await omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } });
-
-    // Fetch suggestions from TMDb
-    const tmdbResponse = await tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } });
+    // Both cached, under the same keys the single-source routes use, so this
+    // route and /omdb/search share one OMDb budget instead of each spending it.
+    const key = query.toLowerCase();
+    const omdbResponse = await cache.wrap(
+      `omdb:search:${key}`,
+      () => omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } }),
+      TTL.search
+    );
+    const tmdbResponse = await cache.wrap(
+      `tmdb:search:${key}`,
+      () => tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } }),
+      TTL.search
+    );
 
     const omdbSuggestions = omdbResponse.data.Search || [];
     const tmdbSuggestions = (tmdbResponse.data.results || []).map((movie) => ({

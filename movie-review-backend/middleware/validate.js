@@ -6,7 +6,8 @@ function requireString(value, field, { max, min = 1 } = {}) {
 }
 
 function validateReview(req, res, next) {
-  const { movieId, rating, comment } = req.body;
+  // Undefined when the request was not JSON; that is a 400, not a crash.
+  const { movieId, rating, comment } = req.body || {};
   const errors = [];
   if (movieId !== undefined) {
     const error = requireString(movieId, "movieId", { max: 64 });
@@ -31,7 +32,7 @@ function validateReview(req, res, next) {
 }
 
 function validateNewReview(req, res, next) {
-  if (req.body.movieId === undefined) {
+  if ((req.body || {}).movieId === undefined) {
     return res.status(400).json({ error: "Invalid review", details: ["movieId is required"] });
   }
   return validateReview(req, res, next);
@@ -45,4 +46,16 @@ function validateMovieQuery(req, res, next) {
   return next();
 }
 
-module.exports = { validateReview, validateNewReview, validateMovieQuery };
+// /omdb/details looks a film up by IMDb id and nothing else. It used the
+// shared query validator, which accepted ?query= as well, so a request with
+// no imdbID passed validation and asked OMDb for "undefined" - spending a
+// request from the 1,000-a-day quota and caching the miss under that key.
+function validateImdbId(req, res, next) {
+  const id = req.query.imdbID;
+  if (typeof id !== "string" || !/^tt\d{7,10}$/.test(id)) {
+    return res.status(400).json({ error: "imdbID must look like tt0111161" });
+  }
+  return next();
+}
+
+module.exports = { validateReview, validateNewReview, validateMovieQuery, validateImdbId };
