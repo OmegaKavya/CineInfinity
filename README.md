@@ -115,7 +115,7 @@ everyone for an hour.
 ## Tests
 
 ```bash
-cd movie-review-frontend && npm test    # 120
+cd movie-review-frontend && npm test    # 124
 cd movie-review-backend  && npm test    # 94
 ```
 
