@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { fetchEntry } from '../api/anilist';
 import { collectFranchise, watchOrders } from '../lib/franchiseGraph';
+import { drawableFranchise } from '../lib/graphLayout';
+import FranchiseGraph from './FranchiseGraph';
 import SimilarAnime from './SimilarAnime';
 
 const VIEWS = [
   { id: 'story', label: 'Story order', hint: 'Chronological. What most people mean by watch order.' },
   { id: 'essential', label: 'Essential only', hint: 'Story order with recaps, shorts and side stories removed.' },
   { id: 'release', label: 'Release order', hint: 'What aired when. Often tells the story out of sequence.' },
+  { id: 'graph', label: 'Graph', hint: 'Why the order is what it is: each arrow runs from an entry to one that needs it first. Select an entry to open its franchise.' },
 ];
 
 const KIND_LABEL = { main: null, side: 'side story', recap: 'recap', promo: 'promo' };
@@ -22,6 +25,9 @@ const KIND_LABEL = { main: null, side: 'side story', recap: 'recap', promo: 'pro
 export default function WatchOrder({ anime, onClose, onSelect }) {
   const [view, setView] = useState('story');
   const [orders, setOrders] = useState(null);
+  // The laid-out graph, kept beside the orders so the Graph tab is drawn from
+  // the same traversal as the lists rather than a second one.
+  const [drawing, setDrawing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,11 +38,14 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
     setLoading(true);
     setError('');
     setOrders(null);
+    setDrawing(null);
 
     collectFranchise(anime.id, fetchEntry)
       .then((graph) => {
         if (!current) return;
-        setOrders(watchOrders(graph, anime.id));
+        const resolved = watchOrders(graph, anime.id);
+        setOrders(resolved);
+        setDrawing(drawableFranchise(graph, resolved).drawn);
       })
       .catch((err) => {
         if (current) setError(err.message || 'Could not work out the order.');
@@ -52,7 +61,7 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
 
   if (!anime) return null;
 
-  const list = orders?.[view] || [];
+  const list = view === 'graph' ? [] : orders?.[view] || [];
 
   // A franchise opened from ?anime=<id> arrives with no title, so take it
   // from the entry the resolver found rather than leaving the heading blank.
@@ -129,7 +138,11 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
         </p>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && view === 'graph' && drawing && (
+        <FranchiseGraph drawn={drawing} onSelect={onSelect} />
+      )}
+
+      {!loading && !error && view !== 'graph' && (
         <ol className="watch-order__list">
           {list.map((entry, index) => (
             <li key={entry.id} className={`watch-order__item watch-order__item--${entry.kind}`}>

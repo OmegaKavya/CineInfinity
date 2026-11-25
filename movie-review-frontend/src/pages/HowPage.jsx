@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchEntry, searchAnime } from '../api/anilist';
 import { collectFranchise, watchOrders } from '../lib/franchiseGraph';
-import { layout } from '../lib/graphLayout';
+import { drawableFranchise } from '../lib/graphLayout';
+import FranchiseGraph from '../components/FranchiseGraph';
 import './HowPage.css';
 
 /**
@@ -30,29 +31,6 @@ const EDGE_LABEL = {
   ALTERNATIVE: 'alternative',
 };
 
-// Drawing units. The SVG scales to its container; these only set proportion.
-const COL_W = 210;
-const ROW_H = 92;
-const NODE_W = 170;
-const NODE_H = 62;
-
-/**
- * Point an edge the way the dependency runs.
- *
- * AniList states relations from the entry outwards: a PREQUEL edge runs from
- * an entry TO the thing that precedes it, which is the opposite of "must be
- * watched first". Fed to the layout as given, the graph came out newest
- * first and every arrow pointed backwards in time.
- *
- * SEQUEL and SIDE_STORY already run forwards. Anything else is not an
- * ordering claim and is dropped rather than drawn as one.
- */
-function dependencyEdge(edge) {
-  if (edge.type === 'PREQUEL') return { ...edge, from: edge.to, to: edge.from };
-  if (edge.type === 'SEQUEL' || edge.type === 'SIDE_STORY') return edge;
-  return null;
-}
-
 export default function HowPage() {
   const [active, setActive] = useState(PRESETS[0]);
   const [state, setState] = useState({ status: 'loading' });
@@ -67,19 +45,12 @@ export default function HowPage() {
       const graph = await collectFranchise(seed.id, fetchEntry, { maxEntries: 18 });
       const orders = watchOrders(graph, seed.id);
 
-      // Only the spine is drawn. Recaps and promos triple the node count and
-      // say nothing about ordering, which is what the picture is about.
-      const spine = orders.essential.length ? orders.essential : orders.story;
-      const keep = new Set(spine.map((e) => e.id));
-      const edges = graph.edges
-        .filter((e) => keep.has(e.from) && keep.has(e.to))
-        .map(dependencyEdge)
-        .filter(Boolean);
+      const { spine, keep, drawn } = drawableFranchise(graph, orders);
 
       setState({
         status: 'ready',
         seed,
-        drawn: layout(spine, edges),
+        drawn,
         release: orders.release.filter((e) => keep.has(e.id)),
         story: spine,
         cycles: orders.cycles?.length || 0,
@@ -147,7 +118,7 @@ export default function HowPage() {
               backwards against an edge, release order and story order
               disagree, and that is the case this resolver exists for.
             </p>
-            <Graph drawn={state.drawn} />
+            <FranchiseGraph drawn={state.drawn} />
             <p className="how__caption">
               {state.drawn.nodes.length} entries on the spine, {state.drawn.edges.length}{' '}
               edges, {state.fetched} fetched before the cap.
@@ -196,67 +167,6 @@ export default function HowPage() {
   );
 }
 
-function Graph({ drawn }) {
-  const width = drawn.columns * COL_W + 40;
-  const height = drawn.rows * ROW_H + 40;
-
-  const x = (n) => n.column * COL_W + 20;
-  const y = (n) => n.offset * ROW_H + 20;
-
-  return (
-    <div className="how__graph" role="img"
-         aria-label={`Dependency graph of ${drawn.nodes.length} entries in ${drawn.columns} columns`}>
-      {/* Sized in pixels, not scaled to the container. Scaled, a thirteen
-          column graph was squeezed into the text width and every label went
-          to a grey smear. It scrolls sideways instead, which is the right
-          trade for a diagram whose labels are the content. */}
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        width={width}
-        height={height}
-        preserveAspectRatio="xMinYMin meet"
-      >
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
-                  markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-          </marker>
-        </defs>
-
-        {drawn.edges.map((edge, i) => {
-          const x1 = x(edge.source) + NODE_W;
-          const y1 = y(edge.source) + NODE_H / 2;
-          const x2 = x(edge.target);
-          const y2 = y(edge.target) + NODE_H / 2;
-          const mid = (x1 + x2) / 2;
-          return (
-            <g key={i} className={`how__edge is-${(edge.type || '').toLowerCase()}`}>
-              <path
-                d={`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`}
-                fill="none"
-                markerEnd="url(#arrow)"
-              />
-            </g>
-          );
-        })}
-
-        {drawn.nodes.map((node) => (
-          <g key={node.id} className={`how__node is-${node.kind || 'main'}`}
-             transform={`translate(${x(node)} ${y(node)})`}>
-            <rect width={NODE_W} height={NODE_H} rx="8" />
-            <text className="how__node-title" x="10" y="24">
-              {truncate(node.title, 22)}
-            </text>
-            <text className="how__node-year" x="10" y="45">
-              {node.startDate?.year || 'year unknown'}
-            </text>
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
-
 function Compare({ release, story }) {
   const storyIndex = new Map(story.map((e, i) => [e.id, i]));
 
@@ -285,9 +195,4 @@ function Compare({ release, story }) {
       })}
     </ol>
   );
-}
-
-function truncate(text, max) {
-  const value = String(text || '');
-  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }

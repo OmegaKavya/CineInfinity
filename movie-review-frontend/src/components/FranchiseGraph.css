@@ -1,0 +1,40 @@
+/* The franchise dependency graph, shared by the How page and the watch-order panel. */
+
+.fgraph__graph {
+  /* Wider than the text column on purpose: the diagram is the evidence, so
+     it gets the room. It scrolls horizontally on a phone rather than being
+     shrunk to illegibility. */
+  margin-inline: calc(var(--gutter, 1rem) * -1);
+  padding-inline: var(--gutter, 1rem);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.fgraph__graph svg {
+  display: block;
+  /* No width: 100%. The element carries its own pixel size so the labels
+     stay readable and the container scrolls. */
+  max-width: none;
+}
+
+.fgraph__node rect {
+  fill: rgba(127, 127, 127, 0.1);
+  stroke: rgba(127, 127, 127, 0.35);
+  stroke-width: 1;
+}
+.fgraph__node.is-main rect { stroke: var(--accent, #ff2e88); }
+.fgraph__node.is-side rect { stroke-dasharray: 4 3; }
+
+.fgraph__node-title { font-size: 13px; font-weight: 600; fill: currentColor; }
+.fgraph__node-year { font-size: 11px; fill: currentColor; opacity: 0.55; font-variant-numeric: tabular-nums; }
+
+.fgraph__edge { color: rgba(127, 127, 127, 0.55); }
+.fgraph__edge path { stroke: currentColor; stroke-width: 1.6; }
+/* A prequel edge is the interesting one, so it is the one that is coloured. */
+.fgraph__edge.is-prequel { color: var(--accent, #ff2e88); }
+.fgraph__edge.is-side_story path { stroke-dasharray: 4 3; }
+
+.fgraph__node.is-link { cursor: pointer; }
+.fgraph__node.is-link:hover rect,
+.fgraph__node.is-link:focus-visible rect { fill: rgba(127, 127, 127, 0.2); }
+.fgraph__node:focus { outline: none; }

@@ -99,3 +99,37 @@ export function layout(nodes, edges) {
     rows: tallest,
   };
 }
+
+
+/**
+ * Point an edge the way the dependency runs.
+ *
+ * AniList states relations from the entry outwards: a PREQUEL edge runs from
+ * an entry TO the thing that precedes it, which is the opposite of "must be
+ * watched first". Fed to the layout as given, the graph came out newest
+ * first and every arrow pointed backwards in time.
+ *
+ * SEQUEL and SIDE_STORY already run forwards. Anything else is not an
+ * ordering claim and is dropped rather than drawn as one.
+ */
+export function dependencyEdge(edge) {
+  if (edge.type === 'PREQUEL') return { ...edge, from: edge.to, to: edge.from };
+  if (edge.type === 'SEQUEL' || edge.type === 'SIDE_STORY') return edge;
+  return null;
+}
+
+/**
+ * What to draw for a resolved franchise: the essential entries (or the whole
+ * story order when nothing is essential) and the dependency edges between
+ * them, laid out. Recaps and promos triple the node count and say nothing
+ * about ordering, which is what the picture is about.
+ */
+export function drawableFranchise(graph, orders) {
+  const spine = orders.essential.length ? orders.essential : orders.story;
+  const keep = new Set(spine.map((e) => e.id));
+  const edges = graph.edges
+    .filter((e) => keep.has(e.from) && keep.has(e.to))
+    .map(dependencyEdge)
+    .filter(Boolean);
+  return { spine, keep, drawn: layout(spine, edges) };
+}

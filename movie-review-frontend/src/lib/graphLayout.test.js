@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { depths, layout } from './graphLayout';
+import { depths, layout, dependencyEdge, drawableFranchise } from './graphLayout';
 
 describe('depth', () => {
   it('places a root at zero and each dependant after it', () => {
@@ -68,5 +68,40 @@ describe('layout', () => {
     // never fetched. Drawing one would throw on a missing position.
     const out = layout(nodes, [{ from: 1, to: 404 }]);
     expect(out.edges).toHaveLength(0);
+  });
+});
+
+
+describe('dependencyEdge', () => {
+  it('turns a prequel round so it points from what comes first', () => {
+    expect(dependencyEdge({ from: 2, to: 1, type: 'PREQUEL' })).toEqual({ from: 1, to: 2, type: 'PREQUEL' });
+  });
+  it('keeps sequels and side stories as given and drops other relations', () => {
+    expect(dependencyEdge({ from: 1, to: 2, type: 'SEQUEL' })).toEqual({ from: 1, to: 2, type: 'SEQUEL' });
+    expect(dependencyEdge({ from: 1, to: 3, type: 'SIDE_STORY' }).to).toBe(3);
+    expect(dependencyEdge({ from: 1, to: 4, type: 'ALTERNATIVE' })).toBeNull();
+  });
+});
+
+describe('drawableFranchise', () => {
+  const entries = [{ id: 1, title: 'A' }, { id: 2, title: 'B' }, { id: 3, title: 'Recap' }];
+  const graph = {
+    edges: [
+      { from: 2, to: 1, type: 'PREQUEL' },
+      { from: 1, to: 2, type: 'SEQUEL' },
+      { from: 1, to: 3, type: 'SUMMARY' },
+    ],
+  };
+
+  it('draws the essential entries, with every arrow pointing forwards', () => {
+    const { drawn, keep } = drawableFranchise(graph, { essential: entries.slice(0, 2), story: entries });
+    expect([...keep].sort()).toEqual([1, 2]);
+    const column = new Map(drawn.nodes.map((n) => [n.id, n.column]));
+    expect(column.get(1)).toBeLessThan(column.get(2));
+  });
+
+  it('falls back to the full story order when nothing is essential', () => {
+    const { keep } = drawableFranchise(graph, { essential: [], story: entries });
+    expect(keep.size).toBe(3);
   });
 });
