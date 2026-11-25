@@ -30,6 +30,7 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
   const [drawing, setDrawing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!anime) return undefined;
@@ -43,6 +44,12 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
     collectFranchise(anime.id, fetchEntry)
       .then((graph) => {
         if (!current) return;
+        // Nothing came back, not even the entry asked for: that is a failed
+        // request, not a franchise. Treated as data, an empty traversal used
+        // to render as "release order and story order happen to agree".
+        if (!graph.entries.size) {
+          throw new Error('Could not load this franchise from AniList right now. The server may be starting up; try again in a minute.');
+        }
         const resolved = watchOrders(graph, anime.id);
         setOrders(resolved);
         setDrawing(drawableFranchise(graph, resolved).drawn);
@@ -57,7 +64,7 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
     return () => {
       current = false;
     };
-  }, [anime]);
+  }, [anime, attempt]);
 
   if (!anime) return null;
 
@@ -107,10 +114,32 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
 
       <p className="watch-order__hint">{VIEWS.find((v) => v.id === view).hint}</p>
 
-      {loading && <p>Tracing the franchise…</p>}
-      {error && <p className="error-text" role="alert">{error}</p>}
+      {loading && (
+        // Rows shaped like the real ones, so the panel holds its size while
+        // the franchise is traced instead of collapsing to one line of text.
+        <ol className="watch-order__list" aria-busy="true" aria-label="Tracing the franchise">
+          {Array.from({ length: 5 }, (_, i) => (
+            <li key={i} className="watch-order__item watch-order__item--placeholder">
+              <span className="watch-order__index">{i + 1}</span>
+              <span className="watch-order__cover watch-order__cover--placeholder" />
+              <span className="watch-order__body">
+                <span className="placeholder-line" style={{ width: `${55 + ((i * 13) % 30)}%` }} />
+                <span className="placeholder-line placeholder-line--short" />
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}{' '}
+          <button type="button" className="catalogue__reset" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      )}
 
-      {orders && !differs && (
+      {orders && orders.story.length > 1 && !differs && (
         <p className="watch-order__note">
           For this franchise, release order and story order happen to agree.
         </p>

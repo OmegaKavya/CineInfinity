@@ -27,7 +27,7 @@ function displayScore(item) {
 }
 
 export default function Catalogue({
-  title, subtitle, items, loading, error, onSelect, filterable = false,
+  title, subtitle, items, loading, error, onSelect, onRetry, filterable = false,
 }) {
   const [sort, setSort] = useState('default');
   const [decade, setDecade] = useState(null);
@@ -134,7 +134,16 @@ export default function Catalogue({
         </div>
       )}
 
-      {error && <p className="error-text" role="alert">{error}</p>}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}{' '}
+          {onRetry && (
+            <button type="button" className="catalogue__reset" onClick={onRetry}>
+              Try again
+            </button>
+          )}
+        </p>
+      )}
 
       {loading && (
         // Placeholders sized like the real cards, so the row does not collapse

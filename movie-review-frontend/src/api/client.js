@@ -92,7 +92,20 @@ export function readableError(error, fallback = 'Something went wrong.') {
     return 'The server took too long to respond. It may be waking up - try again in a moment.';
   }
   if (!error?.response) {
-    return 'Could not reach the server. Check your connection.';
+    // Not an HTTP failure at all: an Error raised by our own code (the
+    // AniList client's "server was asleep" message, for one) already says
+    // what happened, and replacing it with a generic line threw that away.
+    if (!error?.isAxiosError && error?.message) return error.message;
+    // No response usually means our free-tier server is asleep or starting,
+    // not that the visitor's connection is at fault. Only say "offline"
+    // when the browser says so.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return 'You appear to be offline. Check your connection.';
+    }
+    return 'The server is not answering. It runs on a free host that sleeps when idle; give it a minute and try again.';
+  }
+  if ([502, 503, 504].includes(error.response.status)) {
+    return 'The server is starting up or briefly unavailable. Give it a minute and try again.';
   }
   const { status, data } = error.response;
   if (status === 401 || status === 403) return 'You need to sign in again to do that.';

@@ -109,7 +109,14 @@ export async function fetchEntry(id) {
 
   const promise = query('entry', { id })
     .then((data) => toEntry(data.Media))
-    .catch(() => null); // a missing entry must not abort the whole traversal
+    .catch(() => {
+      // A missing entry must not abort the whole traversal, so this resolves
+      // to null rather than rejecting. But the null is not cached: a failure
+      // is usually the server being asleep, and caching it meant the same
+      // entries stayed empty after it woke, until the page was reloaded.
+      cache.delete(id);
+      return null;
+    });
 
   cache.set(id, promise);
   return promise;

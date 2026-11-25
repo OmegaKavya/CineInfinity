@@ -1724,3 +1724,14 @@ button:hover {
   padding: 2.5rem 1rem 3rem;
   border-top: 1px solid var(--hairline);
 }
+
+/* Loading placeholders for the watch-order list. */
+.watch-order__item--placeholder { pointer-events: none; }
+.watch-order__cover--placeholder { display: block; height: 56px; background: rgba(127, 127, 127, 0.18); }
+.placeholder-line { display: block; height: 12px; border-radius: 6px; background: rgba(127, 127, 127, 0.18); margin: 4px 0; }
+.placeholder-line--short { width: 30%; height: 10px; }
+@media (prefers-reduced-motion: no-preference) {
+  .poster--placeholder, .watch-order__cover--placeholder, .placeholder-line { animation: placeholder-pulse 1.6s ease-in-out infinite; }
+}
+@keyframes placeholder-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.watch-order__item--placeholder .watch-order__body { flex: 1; }

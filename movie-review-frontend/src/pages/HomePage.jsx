@@ -44,6 +44,7 @@ export default function HomePage() {
           items={anime.items}
           loading={anime.loading}
           error={anime.error}
+          onRetry={anime.retry}
           filterable
           onSelect={(item) => navigate(`/anime/${item.id}`)}
         />
@@ -54,6 +55,7 @@ export default function HomePage() {
           items={hollywood.items}
           loading={hollywood.loading}
           error={hollywood.error}
+          onRetry={hollywood.retry}
           filterable
           onSelect={openFilm}
         />
@@ -64,6 +66,7 @@ export default function HomePage() {
           items={bollywood.items}
           loading={bollywood.loading}
           error={bollywood.error}
+          onRetry={bollywood.retry}
           filterable
           onSelect={openFilm}
         />
