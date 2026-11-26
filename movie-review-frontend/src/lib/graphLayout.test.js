@@ -126,4 +126,20 @@ describe('drawableFranchise', () => {
     expect(marked([{ id: 1, startDate: { year: 2009 } }, { id: 2, startDate: { year: 2012 } }])).toBe(false);
     expect(marked(entries.slice(0, 2))).toBe(false);
   });
+
+  it('does not mark a link into or out of an undated entry', () => {
+    // AniList sends an unannounced entry as { year: null }, not without a
+    // date, and 2020 > null is true.
+    const marked = (spine) => drawableFranchise(graph, { essential: spine, story: spine }).drawn.edges[0].backwards;
+    expect(marked([{ id: 1, startDate: { year: 2020, month: 4 } }, { id: 2, startDate: { year: null, month: null } }])).toBe(false);
+    expect(marked([{ id: 1, startDate: { year: null, month: null } }, { id: 2, startDate: { year: 2020, month: 4 } }])).toBe(false);
+  });
+
+  it('marks a prequel released later in the same year, by month', () => {
+    const marked = (spine) => drawableFranchise(graph, { essential: spine, story: spine }).drawn.edges[0].backwards;
+    expect(marked([{ id: 1, startDate: { year: 2020, month: 11 } }, { id: 2, startDate: { year: 2020, month: 2 } }])).toBe(true);
+    expect(marked([{ id: 1, startDate: { year: 2020, month: 2 } }, { id: 2, startDate: { year: 2020, month: 11 } }])).toBe(false);
+    // Within one year an unknown month cannot be ordered, so it is not marked.
+    expect(marked([{ id: 1, startDate: { year: 2020, month: 11 } }, { id: 2, startDate: { year: 2020, month: null } }])).toBe(false);
+  });
 });

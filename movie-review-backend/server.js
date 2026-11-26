@@ -11,6 +11,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const watchlistRoutes = require("./routes/watchlistRoutes");
 const createAnilistRouter = require("./routes/anilistRoutes");
 const { createCache } = require("./lib/cache");
+const { connectMongo } = require("./lib/connectMongo");
 const { authError } = require("./config/firebase");
 
 const app = express();
@@ -157,23 +158,17 @@ app.use((err, _req, res, _next) => {
 // error with no indication of which setting is wrong.
 //
 // So a failure is logged instead of fatal. The server still binds, /health
-// reports "degraded" and which subsystem, and mongoose retries in the
-// background, which means a database that comes up late recovers on its own
-// rather than needing a manual redeploy.
+// reports "degraded" and which subsystem, and the connect is retried on a
+// timer (lib/connectMongo.js, since mongoose itself does not retry a first
+// connect), so a database that comes up a few minutes late recovers without
+// a redeploy.
 if (!process.env.MONGO_URI) {
   console.error(
     "MONGO_URI is not set, so reviews are unavailable. Film browsing and " +
       "search are unaffected."
   );
 } else {
-  mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => {
-      console.log("MongoDB connected");
-    })
-    .catch((err) => {
-      console.error("MongoDB connection failed:", err.message);
-    });
+  connectMongo(() => mongoose.connect(process.env.MONGO_URI));
 }
 
 // Start Server

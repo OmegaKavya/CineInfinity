@@ -104,6 +104,19 @@ export async function authHeaders(user) {
   return { headers: { Authorization: `Bearer ${token}` } };
 }
 
+// Firebase codes, from getIdToken in authHeaders, that mean the session itself
+// is over, so signing in again is the remedy. invalid-refresh-token is not in
+// the SDK's own table and reaches here spelled from the server's
+// INVALID_REFRESH_TOKEN. Other auth/* codes (too-many-requests,
+// internal-error) would fail the same way after a fresh sign-in.
+const SESSION_ENDED = new Set([
+  'auth/user-token-expired',
+  'auth/invalid-user-token',
+  'auth/invalid-refresh-token',
+  'auth/user-disabled',
+  'auth/requires-recent-login',
+]);
+
 /**
  * Turn an axios failure into something worth showing a person.
  *
@@ -117,16 +130,13 @@ export function readableError(error, fallback = 'Something went wrong.') {
     return 'The server took too long to respond. It may be waking up - try again in a moment.';
   }
   if (!error?.response) {
-    // Firebase, from getIdToken in authHeaders, when the session can no
-    // longer be refreshed. Its message is a raw code, but the remedy is
-    // the visitor's to take. Except offline, where signing in again fails too.
-    if (typeof error?.code === 'string' && error.code.startsWith('auth/')) {
-      return error.code === 'auth/network-request-failed'
-        ? 'Could not confirm your sign-in. Check your connection and try again.'
-        : 'You need to sign in again to do that.';
+    // A Firebase message is a raw code, so it is translated rather than shown.
+    if (SESSION_ENDED.has(error?.code)) return 'You need to sign in again to do that.';
+    if (error?.code === 'auth/network-request-failed') {
+      return 'Could not confirm your sign-in. Check your connection and try again.';
     }
-    // Not an HTTP failure at all, so a fault in our own code. Its message
-    // is for a developer, not for the visitor.
+    // Not an HTTP failure at all: a fault in our own code, or a Firebase one
+    // that signing in again would not fix. Its message is for a developer.
     if (!error?.isAxiosError) return fallback;
     // No response usually means our free-tier server is asleep or starting,
     // not that the visitor's connection is at fault. Only say "offline"

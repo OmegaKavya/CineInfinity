@@ -33,7 +33,7 @@ describe('readableError', () => {
   it('reports a failing upstream as that, not as the server starting up', () => {
     const message = readableError({
       isAxiosError: true,
-      response: { status: 502, data: { error: 'Could not reach TMDb.', code: 'UPSTREAM_UNAVAILABLE' } },
+      response: { status: 502, data: { error: 'Could not reach the film database.', code: 'UPSTREAM_UNAVAILABLE' } },
     });
     expect(message).not.toMatch(/starting up/i);
     expect(message).toMatch(/service this site depends on/i);
@@ -58,6 +58,17 @@ describe('readableError', () => {
     // Offline, signing in again would fail as well.
     expect(readableError(firebase('auth/network-request-failed'), 'Could not post that review.'))
       .toMatch(/check your connection/i);
+  });
+
+  it('does not ask for a sign-in that would fail the same way', () => {
+    const firebase = (code) => Object.assign(new Error(`Firebase: Error (${code}).`), { code });
+    for (const code of ['auth/too-many-requests', 'auth/internal-error', 'auth/quota-exceeded']) {
+      expect(readableError(firebase(code), 'Could not post that review.')).toBe('Could not post that review.');
+    }
+    for (const code of ['auth/invalid-user-token', 'auth/invalid-refresh-token', 'auth/user-disabled']) {
+      expect(readableError(firebase(code), 'Could not post that review.'))
+        .toBe('You need to sign in again to do that.');
+    }
   });
 
     it('explains a 503 as the server starting, not as a generic failure', () => {

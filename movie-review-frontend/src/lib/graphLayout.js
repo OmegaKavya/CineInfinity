@@ -127,6 +127,18 @@ export function dependencyEdge(edge) {
 const TYPE_RANK = ['SEQUEL', 'PREQUEL', 'SIDE_STORY'];
 
 /**
+ * Whether date a is known to fall after date b. AniList sends an undated
+ * entry as { year: null }, and 2020 > null is true, so a missing year has to
+ * answer false rather than reach the comparison. Within one year the months
+ * decide, and only when both are known: an unknown month is not January.
+ */
+function releasedAfter(a, b) {
+  if (!a?.year || !b?.year) return false;
+  if (a.year !== b.year) return a.year > b.year;
+  return Boolean(a.month && b.month) && a.month > b.month;
+}
+
+/**
  * What to draw for a resolved franchise: the essential entries (or the whole
  * story order when nothing is essential) and the dependency edges between
  * them, laid out. Recaps and promos triple the node count and say nothing
@@ -135,7 +147,7 @@ const TYPE_RANK = ['SEQUEL', 'PREQUEL', 'SIDE_STORY'];
 export function drawableFranchise(graph, orders) {
   const spine = orders.essential.length ? orders.essential : orders.story;
   const keep = new Set(spine.map((e) => e.id));
-  const year = new Map(spine.map((e) => [e.id, e.startDate?.year]));
+  const released = new Map(spine.map((e) => [e.id, e.startDate]));
   // AniList states each link from both ends: A names B as its SEQUEL and B
   // names A as its PREQUEL. Once the PREQUEL is flipped the two are the same
   // arrow, and drawing both stacked two on every spine link and doubled the
@@ -154,11 +166,10 @@ export function drawableFranchise(graph, orders) {
   const edges = [...merged.values()].map((edge) => ({
     ...edge,
     // A prequel released after the entry it leads into, so the arrow points
-    // forwards while the years run backwards: the case the page is about.
+    // forwards while the dates run backwards: the case the page is about.
     // Every link is a PREQUEL from one end and a SEQUEL from the other, so
-    // the relation type cannot single these out; the years can. An unknown
-    // year compares false either way, so it is never marked.
-    backwards: year.get(edge.from) > year.get(edge.to),
+    // the relation type cannot single these out; the dates can.
+    backwards: releasedAfter(released.get(edge.from), released.get(edge.to)),
   }));
   return { spine, keep, drawn: layout(spine, edges) };
 }

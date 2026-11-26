@@ -29,6 +29,12 @@ test.before(async () => {
   base = `http://127.0.0.1:${server.address().port}`;
 });
 
+// Each test asserts on what it logged itself, not on a line an earlier test
+// left behind.
+test.beforeEach(() => {
+  logged.length = 0;
+});
+
 test.after(() => {
   console.error = realConsoleError;
   return new Promise((resolve) => server.close(resolve));
@@ -78,6 +84,18 @@ test("a TMDb failure on the catalogue is a tagged 502 with no internals", async 
   assert.doesNotMatch(JSON.stringify(body), /ETIMEDOUT/);
 });
 
+test("a rejected TMDb key on the catalogue is logged, not named to the visitor", async () => {
+  upstream = async () => {
+    throw Object.assign(new Error("Request failed with status code 401"), { response: { status: 401 } });
+  };
+  const res = await fetch(`${base}/api/movies/discover/bollywood`);
+  const body = await res.json();
+  assert.strictEqual(res.status, 502);
+  assert.strictEqual(body.code, "UPSTREAM_UNAVAILABLE");
+  assert.doesNotMatch(JSON.stringify(body), /TMDB_API_KEY|key/i);
+  assert.ok(logged.some((line) => line.includes("status code 401")), "cause was not logged");
+});
+
 // OMDb reports a spent quota as HTTP 200 with Response "False", the same body
 // it uses for a film it does not have. Cached as a miss, one bad minute became
 // a day of "not found" for every film looked up during it.
@@ -90,7 +108,6 @@ for (const path of [
   "/api/movies/omdb/Heat",
   "/api/movies/omdb/Ronin?year=1998",
   "/api/movies/omdb/search?query=heat",
-  "/api/movies/search?query=ronin",
 ]) {
   test(`an OMDb quota error on ${path} is a tagged 502 and is not cached`, async () => {
     upstream = async (url) => (url === "/" ? quotaSpent : { data: { results: [] } });
@@ -106,6 +123,43 @@ for (const path of [
     assert.strictEqual((await fetch(`${base}${path}`)).status, 200);
   });
 }
+
+// The combined search has TMDb to fall back on, so a spent OMDb quota costs
+// the OMDb half of the results rather than the whole search.
+const tmdbFilm = { data: { results: [{ id: 949, title: "Heat", release_date: "1995-12-15" }] } };
+
+test("an OMDb quota error on the combined search leaves the TMDb results, and is not cached", async () => {
+  upstream = async (url) => (url === "/" ? quotaSpent : tmdbFilm);
+  const res = await fetch(`${base}/api/movies/search?query=heat%20again`);
+  const body = await res.json();
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual(body.map((s) => s.source), ["tmdb"]);
+  assert.ok(logged.some((line) => line.includes("Request limit reached!")), "cause was not logged");
+
+  upstream = async (url) => (url === "/" ? { data: { ...film.data, Search: [film.data] } } : tmdbFilm);
+  const again = await (await fetch(`${base}/api/movies/search?query=heat%20again`)).json();
+  assert.deepStrictEqual(again.map((s) => s.Title), ["Heat", "Heat"]);
+});
+
+test("a TMDb failure on the combined search leaves the OMDb results", async () => {
+  upstream = async (url) => {
+    if (url === "/") return { data: { ...film.data, Search: [film.data] } };
+    throw new Error("connect ETIMEDOUT 13.224.0.1:443");
+  };
+  const res = await fetch(`${base}/api/movies/search?query=heat%20once%20more`);
+  assert.strictEqual(res.status, 200);
+  assert.deepStrictEqual((await res.json()).map((s) => s.imdbID), ["tt0113277"]);
+  assert.ok(logged.some((line) => line.includes("ETIMEDOUT")), "cause was not logged");
+});
+
+test("an OMDb quota error with nothing from TMDb is a tagged 502, not a 404", async () => {
+  upstream = async (url) => (url === "/" ? quotaSpent : { data: { results: [] } });
+  const res = await fetch(`${base}/api/movies/search?query=ronin`);
+  const body = await res.json();
+  assert.strictEqual(res.status, 502);
+  assert.strictEqual(body.code, "UPSTREAM_UNAVAILABLE");
+  assert.doesNotMatch(JSON.stringify(body), /Request limit/);
+});
 
 test("a film OMDb does not have is still a cached 404", async () => {
   let calls = 0;

@@ -48,9 +48,11 @@ async function askOmdb(params) {
 
 // The cause goes to the log, not the response, and the tag stops the frontend
 // taking a failed film database for a sleeping server (lib/upstream.js).
+const UPSTREAM_FAILURE = { error: "Could not reach the film database.", code: UPSTREAM_UNAVAILABLE };
+
 function upstreamFailed(res, what, error) {
   console.error(`${what} failed:`, error.message);
-  return res.status(502).json({ error: "Could not reach the film database.", code: UPSTREAM_UNAVAILABLE });
+  return res.status(502).json(UPSTREAM_FAILURE);
 }
 
 router.get("/omdb/details", validateImdbId, async (req, res) => {
@@ -179,19 +181,24 @@ router.get("/search", validateMovieQuery, async (req, res) => {
     // Both cached, under the same keys the single-source routes use, so this
     // route and /omdb/search share one OMDb budget instead of each spending it.
     const key = query.toLowerCase();
-    const omdbResponse = await cache.wrap(
-      `omdb:search:${key}`,
-      () => askOmdb({ s: query }),
-      TTL.search
-    );
-    const tmdbResponse = await cache.wrap(
-      `tmdb:search:${key}`,
-      () => tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } }),
-      TTL.search
-    );
+    const [omdbResult, tmdbResult] = await Promise.allSettled([
+      cache.wrap(`omdb:search:${key}`, () => askOmdb({ s: query }), TTL.search),
+      cache.wrap(
+        `tmdb:search:${key}`,
+        () => tmdb.get("/search/movie", { params: { query, api_key: process.env.TMDB_API_KEY } }),
+        TTL.search
+      ),
+    ]);
 
-    const omdbSuggestions = omdbResponse.data.Search || [];
-    const tmdbSuggestions = (tmdbResponse.data.results || []).map((movie) => ({
+    // Either source alone is a useful answer, so one that fails (usually
+    // OMDb's daily quota) is logged and left out rather than failing the
+    // search. cache.wrap never caches a failure, so the next search asks again.
+    const failed = [["OMDb search", omdbResult], ["TMDb search", tmdbResult]]
+      .filter(([, result]) => result.status === "rejected");
+    for (const [what, result] of failed) console.error(`${what} failed:`, result.reason.message);
+
+    const omdbSuggestions = omdbResult.value?.data.Search || [];
+    const tmdbSuggestions = (tmdbResult.value?.data.results || []).map((movie) => ({
       imdbID: movie.id, // TMDb uses `id` instead of `imdbID`
       Title: movie.title,
       Year: movie.release_date ? movie.release_date.split("-")[0] : "N/A",
@@ -201,6 +208,9 @@ router.get("/search", validateMovieQuery, async (req, res) => {
     const combinedSuggestions = [...omdbSuggestions, ...tmdbSuggestions];
 
     if (combinedSuggestions.length === 0) {
+      // With a source down, an empty answer says nothing about the film, and
+      // a 404 would tell the visitor it does not exist.
+      if (failed.length) return res.status(502).json(UPSTREAM_FAILURE);
       return res.status(404).json({ error: "No movies found" });
     }
 
@@ -275,11 +285,9 @@ router.get("/discover/:catalogue", async (req, res) => {
       })),
     });
   } catch (error) {
-    if (error.response?.status === 401) {
-      return res.status(500).json({ error: "TMDB_API_KEY is missing or invalid on the server." });
-    }
-    console.error("TMDb discover request failed:", error.message);
-    res.status(502).json({ error: "Could not reach TMDb.", code: UPSTREAM_UNAVAILABLE });
+    // A rejected key included: that is the operator's problem, told in the
+    // log, and naming the setting would only tell visitors how it is set up.
+    upstreamFailed(res, "TMDb discover request", error);
   }
 });
 

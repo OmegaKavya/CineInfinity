@@ -42,7 +42,7 @@ describe('useCatalogue', () => {
   it('does not try to wake the server over a failing upstream', async () => {
     client.get.mockRejectedValue({
       isAxiosError: true,
-      response: { status: 502, data: { error: 'Could not reach TMDb.', code: 'UPSTREAM_UNAVAILABLE' } },
+      response: { status: 502, data: { error: 'Could not reach the film database.', code: 'UPSTREAM_UNAVAILABLE' } },
     });
 
     const { result } = renderHook(() => useCatalogue('bollywood'));

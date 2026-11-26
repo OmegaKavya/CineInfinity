@@ -115,8 +115,8 @@ everyone for an hour.
 ## Tests
 
 ```bash
-cd movie-review-frontend && npm test    # 155
-cd movie-review-backend  && npm test    # 113
+cd movie-review-frontend && npm test    # 158
+cd movie-review-backend  && npm test    # 119
 ```
 
 The backend suite includes the review API end to end, real HTTP against real
@@ -174,11 +174,13 @@ curl https://<service>/health
 ```
 
 A healthy server returns 200. A degraded one returns 503 and names the
-subsystem that is down, so a bad deploy is one request to diagnose rather
-than a scroll through logs. This matters on a host that redeploys per commit:
-exiting on a missing variable turns one wrong setting into a crash loop, a
-failed deploy and a notification on every push, while taking down the parts
-of the API that never needed that variable.
+subsystem that is down; the reason is in the server log, kept out of the
+public response because a database error can name the cluster.
+
+Staying up matters on a host that redeploys per commit: exiting on a missing
+variable turns one wrong setting into a crash loop, a failed deploy and a
+notification on every push, while taking down the parts of the API that
+never needed that variable.
 
 ---
 

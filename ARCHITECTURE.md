@@ -115,7 +115,7 @@ Both the Firebase credential and the Mongo connection previously called `process
 | Subsystem | Missing or unreachable | Effect |
 |---|---|---|
 | `FIREBASE_SERVICE_ACCOUNT` | Lazy init records the fault | Authenticated routes return 503; browsing, search and the resolver are unaffected |
-| `MONGO_URI` | Logged, not fatal; mongoose retries | Reviews unavailable; a late database recovers without a redeploy |
+| `MONGO_URI` | Logged, not fatal; the first connect is retried every 30 seconds, up to ten attempts (mongoose does not retry one itself) | Reviews unavailable; a database that comes up within those attempts recovers without a redeploy |
 | `CORS_ORIGINS` | Falls back to a default allowlist | Localhost permitted outside production |
 
 `GET /health` returns 200 when every subsystem is up and 503 otherwise, naming which subsystem is down and its state; the reason goes to the server log, not the public response, because a database error can name the cluster.
@@ -126,7 +126,7 @@ Both the Firebase credential and the Mongo connection previously called `process
 
 ## 6. Quality Assurance
 
-**268 automated tests**: 155 frontend (Vitest), 113 backend (`node:test`).
+**277 automated tests**: 158 frontend (Vitest), 119 backend (`node:test`).
 
 The backend suite includes the review API end to end, real HTTP against real handlers and real Mongoose on an in-memory MongoDB, with only Firebase stubbed. It requires no keys and nothing provisioned.
 
