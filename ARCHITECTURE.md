@@ -126,7 +126,7 @@ Both the Firebase credential and the Mongo connection previously called `process
 
 ## 6. Quality Assurance
 
-**218 automated tests**: 124 frontend (Vitest), 94 backend (`node:test`).
+**223 automated tests**: 129 frontend (Vitest), 94 backend (`node:test`).
 
 The backend suite includes the review API end to end, real HTTP against real handlers and real Mongoose on an in-memory MongoDB, with only Firebase stubbed. It requires no keys and nothing provisioned.
 
