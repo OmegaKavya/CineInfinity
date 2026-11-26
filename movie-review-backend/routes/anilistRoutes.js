@@ -28,6 +28,7 @@ const ENDPOINT = "https://graphql.anilist.co";
 // anyone post arbitrary queries to AniList with this server's address on
 // them, which is their rate limit to spend and our IP to get blocked.
 const OPERATIONS = require("../lib/anilistQueries");
+const { UPSTREAM_UNAVAILABLE } = require("../lib/upstream");
 
 // The operation allowlist stops arbitrary queries and the cache absorbs
 // repeats, but neither bounds how often one caller causes an upstream
@@ -94,10 +95,7 @@ module.exports = function createAnilistRouter(cache) {
           }
         );
         if (response.data?.errors?.length) {
-          const message = response.data.errors[0].message || "AniList rejected the query.";
-          const error = new Error(message);
-          error.status = 502;
-          throw error;
+          throw new Error(response.data.errors[0].message || "AniList rejected the query.");
         }
         return response.data?.data;
       });
@@ -110,9 +108,12 @@ module.exports = function createAnilistRouter(cache) {
       if (upstream === 429) {
         return res.status(429).json({ error: "AniList is rate-limiting. Try again shortly." });
       }
-      res.status(error.status || 502).json({
-        error: error.message || "Could not reach AniList.",
-      });
+      // The detail goes to the log, not the response. It used to be sent as
+      // the error text, and the browser showed visitors things like
+      // "getaddrinfo ENOTFOUND graphql.anilist.co".
+      console.error(`AniList ${operation} request failed:`, error.message);
+      // Tagged so the frontend does not take it for a sleeping server.
+      res.status(502).json({ error: "Could not reach AniList.", code: UPSTREAM_UNAVAILABLE });
     }
   });
 

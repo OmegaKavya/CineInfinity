@@ -104,4 +104,10 @@ describe('drawableFranchise', () => {
     const { keep } = drawableFranchise(graph, { essential: [], story: entries });
     expect(keep.size).toBe(3);
   });
+
+  it('draws a link stated from both ends as one arrow', () => {
+    // The fixture's 1 -> 2 link is listed as 1's SEQUEL and as 2's PREQUEL.
+    const { drawn } = drawableFranchise(graph, { essential: entries.slice(0, 2), story: entries });
+    expect(drawn.edges.map((e) => `${e.from}->${e.to}`)).toEqual(['1->2']);
+  });
 });

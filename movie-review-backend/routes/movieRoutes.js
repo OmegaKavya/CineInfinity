@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const { validateMovieQuery, validateImdbId } = require("../middleware/validate");
 const { createCache } = require("../lib/cache");
+const { UPSTREAM_UNAVAILABLE } = require("../lib/upstream");
 
 const router = express.Router();
 
@@ -33,8 +34,9 @@ router.get("/omdb/details", validateImdbId, async (req, res) => {
     );
     if (response.data.Response === "False") return res.status(404).json({ error: "Movie not found" });
     return res.json(response.data);
-  } catch (_error) {
-    return res.status(502).json({ error: "Failed to fetch movie details from OMDb" });
+  } catch (error) {
+    console.error("OMDb details request failed:", error.message);
+    return res.status(502).json({ error: "Failed to fetch movie details from OMDb", code: UPSTREAM_UNAVAILABLE });
   }
 });
 
@@ -246,13 +248,11 @@ router.get("/discover/:catalogue", async (req, res) => {
       })),
     });
   } catch (error) {
-    const status = error.response?.status === 401 ? 500 : 502;
-    res.status(status).json({
-      error:
-        error.response?.status === 401
-          ? "TMDB_API_KEY is missing or invalid on the server."
-          : "Could not reach TMDb.",
-    });
+    if (error.response?.status === 401) {
+      return res.status(500).json({ error: "TMDB_API_KEY is missing or invalid on the server." });
+    }
+    console.error("TMDb discover request failed:", error.message);
+    res.status(502).json({ error: "Could not reach TMDb.", code: UPSTREAM_UNAVAILABLE });
   }
 });
 

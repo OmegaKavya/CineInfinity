@@ -127,6 +127,19 @@ describe('collectFranchise', () => {
     const { entries } = await collectFranchise(1, fetchEntry, { maxEntries: 2 });
     expect(entries.size).toBeLessThanOrEqual(2);
   });
+
+  it('reports an entry that failed to load instead of quietly ending there', async () => {
+    // Bakemonogatari's sequel failing used to cut the franchise short at
+    // that point, and the shorter result carried no sign of it.
+    const graph = await collectFranchise(1, (id) => (id === 3 ? null : fetchEntry(id)));
+    expect(graph.entries.has(3)).toBe(false);
+    expect(graph.failed).toEqual([3]);
+    expect(watchOrders(graph, 1).failed).toEqual([3]);
+  });
+
+  it('reports no failures when every entry loads', async () => {
+    expect((await collectFranchise(1, fetchEntry)).failed).toEqual([]);
+  });
 });
 
 describe('storyOrder', () => {

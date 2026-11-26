@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchEntry } from '../api/anilist';
+import { readableError, visitorError } from '../api/client';
 import { collectFranchise, watchOrders } from '../lib/franchiseGraph';
 import { drawableFranchise } from '../lib/graphLayout';
 import FranchiseGraph from './FranchiseGraph';
@@ -48,14 +49,14 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
         // request, not a franchise. Treated as data, an empty traversal used
         // to render as "release order and story order happen to agree".
         if (!graph.entries.size) {
-          throw new Error('Could not load this franchise from AniList right now. The server may be starting up; try again in a minute.');
+          throw visitorError('Could not load this franchise from AniList right now. The server may be starting up; try again in a minute.');
         }
         const resolved = watchOrders(graph, anime.id);
         setOrders(resolved);
         setDrawing(drawableFranchise(graph, resolved).drawn);
       })
       .catch((err) => {
-        if (current) setError(err.message || 'Could not work out the order.');
+        if (current) setError(readableError(err, 'Could not work out the order.'));
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -139,7 +140,20 @@ export default function WatchOrder({ anime, onClose, onSelect }) {
         </p>
       )}
 
-      {orders && orders.story.length > 1 && !differs && (
+      {orders && orders.failed.length > 0 && (
+        // A failed entry ends the traversal along that branch, so everything
+        // past it is missing too. Shown as a full order, that read as the
+        // whole franchise.
+        <p className="watch-order__note watch-order__note--warn" role="alert">
+          {orders.failed.length} entr{orders.failed.length === 1 ? 'y' : 'ies'} could not be loaded
+          from AniList, so this order is missing part of the franchise.{' '}
+          <button type="button" className="catalogue__reset" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </p>
+      )}
+
+      {orders && orders.failed.length === 0 && orders.story.length > 1 && !differs && (
         <p className="watch-order__note">
           For this franchise, release order and story order happen to agree.
         </p>

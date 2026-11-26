@@ -45,6 +45,15 @@ describe('Catalogue', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load.');
   });
 
+  it('offers a Try again that asks for the row to be loaded again', async () => {
+    const onRetry = vi.fn();
+    render(
+      <Catalogue title="Bollywood" items={[]} error="Could not load." onRetry={onRetry} onSelect={() => {}} />
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the year and rating on a card', () => {
     render(<Catalogue title="Hollywood" items={films} onSelect={() => {}} />);
     expect(screen.getByRole('button', { name: /Aladdin/ })).toHaveTextContent('2019');

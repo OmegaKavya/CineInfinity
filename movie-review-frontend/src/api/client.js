@@ -53,7 +53,11 @@ export function wakeBackend() {
     waking = axios
       .get(`${origin}/health`, { timeout: 90000 })
       .then(() => true)
-      .catch(() => false)
+      // Our /health answers 503 "degraded" while the database is still
+      // connecting. That server is awake, and the anime and film routes do
+      // not need the database. Read as asleep, it gave up on a running
+      // server and remembered that for a minute.
+      .catch((error) => error.response?.status === 503 && error.response.data?.status === 'degraded')
       .finally(() => {
         // Let a later call try again; the server may have slept since.
         setTimeout(() => { waking = null; }, 60000);
@@ -62,10 +66,30 @@ export function wakeBackend() {
   return waking;
 }
 
+/**
+ * The backend's tag on a 502 that means a service it calls failed, as
+ * opposed to Render's 502 for an instance that is still starting. The
+ * backend defines the same string in lib/upstream.js.
+ */
+const UPSTREAM_UNAVAILABLE = 'UPSTREAM_UNAVAILABLE';
+
 /** True for the failures a sleeping or restarting instance produces. */
 export function looksAsleep(error) {
   if (!error?.response) return true; // timeout, DNS, connection refused
+  // Waking an awake server does not fix AniList or TMDb being down.
+  if (error.response.data?.code === UPSTREAM_UNAVAILABLE) return false;
   return [502, 503, 504].includes(error.response.status);
+}
+
+/**
+ * An error whose message was written for a visitor, and so may be shown.
+ *
+ * readableError used to show the message of any error that was not an HTTP
+ * response, which put text like "Cannot read properties of undefined" in
+ * front of visitors. Now only messages raised through this are shown.
+ */
+export function visitorError(message) {
+  return Object.assign(new Error(message), { forVisitor: true });
 }
 
 /**
@@ -75,7 +99,7 @@ export function looksAsleep(error) {
  * accidentally send a request as whoever happened to be signed in last.
  */
 export async function authHeaders(user) {
-  if (!user) throw new Error('You must be signed in to do that.');
+  if (!user) throw visitorError('You must be signed in to do that.');
   const token = await user.getIdToken();
   return { headers: { Authorization: `Bearer ${token}` } };
 }
@@ -88,14 +112,14 @@ export async function authHeaders(user) {
  * could possibly help.
  */
 export function readableError(error, fallback = 'Something went wrong.') {
+  if (error?.forVisitor) return error.message;
   if (error?.code === 'ECONNABORTED') {
     return 'The server took too long to respond. It may be waking up - try again in a moment.';
   }
   if (!error?.response) {
-    // Not an HTTP failure at all: an Error raised by our own code (the
-    // AniList client's "server was asleep" message, for one) already says
-    // what happened, and replacing it with a generic line threw that away.
-    if (!error?.isAxiosError && error?.message) return error.message;
+    // Not an HTTP failure at all, so a fault in our own code. Its message
+    // is for a developer, not for the visitor.
+    if (!error?.isAxiosError) return fallback;
     // No response usually means our free-tier server is asleep or starting,
     // not that the visitor's connection is at fault. Only say "offline"
     // when the browser says so.
@@ -103,6 +127,9 @@ export function readableError(error, fallback = 'Something went wrong.') {
       return 'You appear to be offline. Check your connection.';
     }
     return 'The server is not answering. It runs on a free host that sleeps when idle; give it a minute and try again.';
+  }
+  if (error.response.data?.code === UPSTREAM_UNAVAILABLE) {
+    return 'A service this site depends on is not answering. Try again in a moment.';
   }
   if ([502, 503, 504].includes(error.response.status)) {
     return 'The server is starting up or briefly unavailable. Give it a minute and try again.';

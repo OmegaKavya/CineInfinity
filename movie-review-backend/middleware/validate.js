@@ -38,8 +38,11 @@ function validateNewReview(req, res, next) {
   return validateReview(req, res, next);
 }
 
+// Only the fields the routes read. It also accepted ?imdbID=, which no route
+// using it reads, so /search?imdbID=... passed and then crashed into a 500 on
+// the missing query.
 function validateMovieQuery(req, res, next) {
-  const value = req.params.title || req.query.query || req.query.imdbID;
+  const value = req.params.title || req.query.query;
   if (typeof value !== "string" || !value.trim() || value.length > 150) {
     return res.status(400).json({ error: "Search input must be between 1 and 150 characters" });
   }

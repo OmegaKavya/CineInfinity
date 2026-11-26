@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchEntry, searchAnime } from '../api/anilist';
+import { readableError, visitorError } from '../api/client';
 import { collectFranchise, watchOrders } from '../lib/franchiseGraph';
 import { drawableFranchise } from '../lib/graphLayout';
 import FranchiseGraph from '../components/FranchiseGraph';
@@ -33,20 +34,38 @@ const EDGE_LABEL = {
 
 export default function HowPage() {
   const [active, setActive] = useState(PRESETS[0]);
+  // Bumped to load the same preset again. Selecting the active preset set
+  // state to the value it already held, so after a failure nothing reran.
+  const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState({ status: 'loading' });
 
-  const resolve = useCallback(async (preset) => {
+  const choose = (preset) => {
+    setActive(preset);
+    setAttempt((n) => n + 1);
+  };
+
+  useEffect(() => {
+    // Switching preset mid-load left the first load running, and whichever
+    // finished last was drawn under the other preset's button.
+    let current = true;
     setState({ status: 'loading' });
-    try {
-      const matches = await searchAnime(preset.query, 1);
-      if (!matches.length) throw new Error('Nothing matched that title.');
+
+    (async () => {
+      const matches = await searchAnime(active.query, 1);
+      if (!matches.length) throw visitorError('Nothing matched that title.');
 
       const seed = matches[0];
       const graph = await collectFranchise(seed.id, fetchEntry, { maxEntries: 18 });
+      // Not even the seed loaded: a failed request, which used to be drawn
+      // as an empty graph and called ready.
+      if (!graph.entries.size) {
+        throw visitorError('Could not load this franchise from AniList right now.');
+      }
       const orders = watchOrders(graph, seed.id);
 
       const { spine, keep, drawn } = drawableFranchise(graph, orders);
 
+      if (!current) return;
       setState({
         status: 'ready',
         seed,
@@ -56,15 +75,16 @@ export default function HowPage() {
         cycles: orders.cycles?.length || 0,
         hidden: orders.story.length - spine.length,
         fetched: graph.entries.size,
+        failed: orders.failed.length,
       });
-    } catch (error) {
-      setState({ status: 'error', message: error.message });
-    }
-  }, []);
+    })().catch((error) => {
+      if (current) setState({ status: 'error', message: readableError(error, 'Could not load this franchise.') });
+    });
 
-  useEffect(() => {
-    resolve(active);
-  }, [active, resolve]);
+    return () => {
+      current = false;
+    };
+  }, [active, attempt]);
 
   useEffect(() => {
     document.title = 'How the resolver works - CineInfinity';
@@ -91,7 +111,7 @@ export default function HowPage() {
             key={preset.label}
             type="button"
             className={preset.label === active.label ? 'is-active' : ''}
-            onClick={() => setActive(preset)}
+            onClick={() => choose(preset)}
           >
             <b>{preset.label}</b>
             <span>{preset.note}</span>
@@ -104,7 +124,10 @@ export default function HowPage() {
       {state.status === 'error' && (
         <p className="error-text" role="alert">
           {state.message} The resolver depends on a live API; this is what a
-          failure looks like rather than a placeholder.
+          failure looks like rather than a placeholder.{' '}
+          <button type="button" className="catalogue__reset" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
         </p>
       )}
 
@@ -124,6 +147,8 @@ export default function HowPage() {
               edges, {state.fetched} fetched before the cap.
               {state.hidden > 0 && ` ${state.hidden} recaps and shorts are classified and left out.`}
               {state.cycles > 0 && ` ${state.cycles} cyclic edges were detected and broken.`}
+              {state.failed > 0 &&
+                ` ${state.failed} failed to load, so part of the franchise is missing; choose it again to retry.`}
             </p>
           </section>
 

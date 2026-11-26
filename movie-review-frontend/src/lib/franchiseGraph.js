@@ -95,6 +95,10 @@ export async function collectFranchise(seedId, fetchEntry, options = {}) {
 
   const entries = new Map(); // id -> entry
   const edges = []; // { from, to, type }
+  // Entries a relation named but the fetch did not return. When these were
+  // skipped silently, a failure partway through cut the franchise short at
+  // that entry and the rest was presented as the whole thing.
+  const failed = [];
   const seen = new Set([seedId]);
   let frontier = [{ id: seedId, depth: 0 }];
 
@@ -108,7 +112,10 @@ export async function collectFranchise(seedId, fetchEntry, options = {}) {
       if (entries.size >= maxEntries) break;
 
       const entry = await fetchEntry(id);
-      if (!entry) continue;
+      if (!entry) {
+        failed.push(id);
+        continue;
+      }
 
       entries.set(id, entry);
 
@@ -134,6 +141,7 @@ export async function collectFranchise(seedId, fetchEntry, options = {}) {
   return {
     entries,
     edges: edges.filter((e) => entries.has(e.from) && entries.has(e.to)),
+    failed,
   };
 }
 
@@ -249,7 +257,7 @@ export function storyOrder({ entries, edges }, options = {}) {
 /**
  * Build the three orderings for a franchise.
  *
- * @returns {{release:object[], story:object[], essential:object[], cycles:number[]}}
+ * @returns {{release:object[], story:object[], essential:object[], cycles:number[], incomplete:number[], failed:number[]}}
  */
 export function watchOrders(graph, seedId) {
   const { entries } = graph;
@@ -280,5 +288,6 @@ export function watchOrders(graph, seedId) {
     essential: story.filter((e) => e.kind === 'main'),
     cycles,
     incomplete,
+    failed: graph.failed,
   };
 }

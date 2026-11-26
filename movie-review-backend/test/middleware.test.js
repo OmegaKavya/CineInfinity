@@ -49,6 +49,11 @@ test("film details require a real IMDb id, before any upstream call", async () =
   }
 });
 
+test("search ignores an imdbID it does not read: a 400, not a 500", async () => {
+  const res = await fetch(`${base}/api/movies/search?imdbID=tt0111161`);
+  assert.strictEqual(res.status, 400);
+});
+
 test("a non-JSON review body is a 400, not a crash", async () => {
   // Authentication runs first on review routes, so exercise the validator
   // directly with the body express.json leaves for a non-JSON request.

@@ -127,9 +127,20 @@ export function dependencyEdge(edge) {
 export function drawableFranchise(graph, orders) {
   const spine = orders.essential.length ? orders.essential : orders.story;
   const keep = new Set(spine.map((e) => e.id));
+  // AniList states each link from both ends: A names B as its SEQUEL and B
+  // names A as its PREQUEL. Once the PREQUEL is flipped the two are the same
+  // arrow, and drawing both stacked two on every spine link and doubled the
+  // edge count in the caption.
+  const seen = new Set();
   const edges = graph.edges
     .filter((e) => keep.has(e.from) && keep.has(e.to))
     .map(dependencyEdge)
-    .filter(Boolean);
+    .filter((e) => {
+      if (!e) return false;
+      const key = `${e.from}->${e.to}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   return { spine, keep, drawn: layout(spine, edges) };
 }
