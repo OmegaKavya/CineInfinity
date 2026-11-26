@@ -115,8 +115,8 @@ everyone for an hour.
 ## Tests
 
 ```bash
-cd movie-review-frontend && npm test    # 154
-cd movie-review-backend  && npm test    # 101
+cd movie-review-frontend && npm test    # 155
+cd movie-review-backend  && npm test    # 113
 ```
 
 The backend suite includes the review API end to end, real HTTP against real

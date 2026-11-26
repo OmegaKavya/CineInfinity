@@ -85,7 +85,7 @@ export default function ReviewSection({ movieId, film }) {
 
       {composing && (
         <div className="review-form">
-          <label htmlFor="new-rating">Rating (1&ndash;10)</label>
+          <label htmlFor="new-rating">Rating (1 to 10)</label>
           <input
             id="new-rating"
             type="number"
@@ -116,7 +116,7 @@ export default function ReviewSection({ movieId, film }) {
         <article key={review._id} className="review-item">
           {editingId === review._id ? (
             <div className="edit-review-form">
-              <label htmlFor={`edit-rating-${review._id}`}>Rating (1&ndash;10)</label>
+              <label htmlFor={`edit-rating-${review._id}`}>Rating (1 to 10)</label>
               <input
                 id={`edit-rating-${review._id}`}
                 type="number"

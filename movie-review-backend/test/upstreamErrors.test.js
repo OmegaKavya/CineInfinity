@@ -77,3 +77,68 @@ test("a TMDb failure on the catalogue is a tagged 502 with no internals", async 
   assert.strictEqual(body.code, "UPSTREAM_UNAVAILABLE");
   assert.doesNotMatch(JSON.stringify(body), /ETIMEDOUT/);
 });
+
+// OMDb reports a spent quota as HTTP 200 with Response "False", the same body
+// it uses for a film it does not have. Cached as a miss, one bad minute became
+// a day of "not found" for every film looked up during it.
+const film = { data: { Response: "True", Title: "Heat", imdbID: "tt0113277" } };
+const quotaSpent = { data: { Response: "False", Error: "Request limit reached!" } };
+
+// Each path asks for something different, as the routes share one cache.
+for (const path of [
+  "/api/movies/omdb/details?imdbID=tt0113277",
+  "/api/movies/omdb/Heat",
+  "/api/movies/omdb/Ronin?year=1998",
+  "/api/movies/omdb/search?query=heat",
+  "/api/movies/search?query=ronin",
+]) {
+  test(`an OMDb quota error on ${path} is a tagged 502 and is not cached`, async () => {
+    upstream = async (url) => (url === "/" ? quotaSpent : { data: { results: [] } });
+    const res = await fetch(`${base}${path}`);
+    const body = await res.json();
+    assert.strictEqual(res.status, 502);
+    assert.strictEqual(body.code, "UPSTREAM_UNAVAILABLE");
+    assert.doesNotMatch(JSON.stringify(body), /Request limit/);
+    assert.ok(logged.some((line) => line.includes("Request limit reached!")), "cause was not logged");
+
+    upstream = async (url) =>
+      url === "/" ? { data: { ...film.data, Search: [film.data] } } : { data: { results: [] } };
+    assert.strictEqual((await fetch(`${base}${path}`)).status, 200);
+  });
+}
+
+test("a film OMDb does not have is still a cached 404", async () => {
+  let calls = 0;
+  upstream = async () => {
+    calls += 1;
+    return { data: { Response: "False", Error: "Movie not found!" } };
+  };
+  for (let i = 0; i < 2; i += 1) {
+    const res = await fetch(`${base}/api/movies/omdb/No%20Such%20Film`);
+    assert.strictEqual(res.status, 404);
+  }
+  assert.strictEqual(calls, 1);
+});
+
+test("an IMDb id OMDb does not know is a 404, not an outage", async () => {
+  upstream = async () => ({ data: { Response: "False", Error: "Error getting data." } });
+  const res = await fetch(`${base}/api/movies/omdb/details?imdbID=tt9999999`);
+  assert.strictEqual(res.status, 404);
+});
+
+for (const path of [
+  "/api/movies/omdb/search?query=alien",
+  "/api/movies/tmdb/search?query=alien",
+  "/api/movies/omdb/Alien",
+  "/api/movies/tmdb/Alien",
+  "/api/movies/search?query=alien",
+]) {
+  test(`an unreachable upstream on ${path} is a tagged 502 with no internals`, async () => {
+    upstream = async () => { throw new Error("connect ECONNREFUSED 104.26.0.1:443"); };
+    const res = await fetch(`${base}${path}`);
+    const body = await res.json();
+    assert.strictEqual(res.status, 502);
+    assert.strictEqual(body.code, "UPSTREAM_UNAVAILABLE");
+    assert.doesNotMatch(JSON.stringify(body), /ECONNREFUSED/);
+  });
+}

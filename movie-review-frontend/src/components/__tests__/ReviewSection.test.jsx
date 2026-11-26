@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 
 // Hoisted so the module factories below can see it.
 const state = vi.hoisted(() => ({ user: null }));
@@ -52,5 +52,15 @@ describe('ReviewSection', () => {
     state.user = { uid: 'me', displayName: 'Kavya' };
     render(<ReviewSection movieId="tt0110357" />);
     expect(screen.getByRole('button', { name: /add a review/i })).toBeInTheDocument();
+  });
+
+  it('labels both rating fields in plain words, with no dash a visitor sees', () => {
+    // Both labels put an en dash between 1 and 10, the last one on the site.
+    state.user = { uid: 'other', displayName: 'Someone' };
+    const { container } = render(<ReviewSection movieId="tt0110357" />);
+    fireEvent.click(screen.getByRole('button', { name: /add a review/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getAllByLabelText('Rating (1 to 10)')).toHaveLength(2);
+    expect(container.textContent).not.toMatch(/[\u2013\u2014]/);
   });
 });

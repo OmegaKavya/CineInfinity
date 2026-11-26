@@ -25,18 +25,45 @@ const cache = createCache({ max: 1000, ttlMs: TTL.search });
 /** Exposed so /health can report whether the cache is doing its job. */
 router.cacheStats = () => cache.stats();
 
+// OMDb answers "no such film" as HTTP 200 with Response "False", and its
+// failures ("Request limit reached!", "Invalid API key!") use the same body.
+// Only these errors are a real absence; checked against OMDb, "Error getting
+// data." is its answer for a well-formed IMDb id it does not know. Any other
+// is thrown here, inside cache.wrap, which never caches a failure, so a spent
+// quota is not served as "not found" for the next day.
+const OMDB_ABSENT = new Set([
+  "Movie not found!",
+  "Incorrect IMDb ID.",
+  "Error getting data.",
+  "Too many results.",
+]);
+
+async function askOmdb(params) {
+  const response = await omdb.get("/", { params: { ...params, apikey: process.env.OMDB_API_KEY } });
+  if (response.data.Response === "False" && !OMDB_ABSENT.has(response.data.Error)) {
+    throw new Error(`OMDb answered "${response.data.Error}"`);
+  }
+  return response;
+}
+
+// The cause goes to the log, not the response, and the tag stops the frontend
+// taking a failed film database for a sleeping server (lib/upstream.js).
+function upstreamFailed(res, what, error) {
+  console.error(`${what} failed:`, error.message);
+  return res.status(502).json({ error: "Could not reach the film database.", code: UPSTREAM_UNAVAILABLE });
+}
+
 router.get("/omdb/details", validateImdbId, async (req, res) => {
   try {
     const response = await cache.wrap(
       `omdb:details:${req.query.imdbID}`,
-      () => omdb.get("/", { params: { i: req.query.imdbID, apikey: process.env.OMDB_API_KEY } }),
+      () => askOmdb({ i: req.query.imdbID }),
       TTL.details
     );
     if (response.data.Response === "False") return res.status(404).json({ error: "Movie not found" });
     return res.json(response.data);
   } catch (error) {
-    console.error("OMDb details request failed:", error.message);
-    return res.status(502).json({ error: "Failed to fetch movie details from OMDb", code: UPSTREAM_UNAVAILABLE });
+    return upstreamFailed(res, "OMDb details request", error);
   }
 });
 
@@ -50,7 +77,7 @@ router.get("/omdb/search", validateMovieQuery, async (req, res) => {
     const { query } = req.query;
     const response = await cache.wrap(
       `omdb:search:${query.toLowerCase()}`,
-      () => omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } }),
+      () => askOmdb({ s: query }),
       TTL.search
     );
     
@@ -60,7 +87,7 @@ router.get("/omdb/search", validateMovieQuery, async (req, res) => {
     
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie suggestions from OMDb" });
+    upstreamFailed(res, "OMDb search request", error);
   }
 });
 
@@ -79,7 +106,7 @@ router.get("/tmdb/search", validateMovieQuery, async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie suggestions from TMDb" });
+    upstreamFailed(res, "TMDb search request", error);
   }
 });
 
@@ -97,7 +124,7 @@ router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
     const lookup = (params) =>
       cache.wrap(
         `omdb:title:${title.toLowerCase()}:${params.y || ""}`,
-        () => omdb.get("/", { params: { t: title, apikey: process.env.OMDB_API_KEY, ...params } }),
+        () => askOmdb({ t: title, ...params }),
         TTL.details
       );
 
@@ -116,7 +143,7 @@ router.get("/omdb/:title", validateMovieQuery, async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie details from OMDb" });
+    upstreamFailed(res, "OMDb title request", error);
   }
 });
 
@@ -136,7 +163,7 @@ router.get("/tmdb/:title", validateMovieQuery, async (req, res) => {
 
     res.json(response.data.results[0]); // Return the first matching result
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie details from TMDb" });
+    upstreamFailed(res, "TMDb title request", error);
   }
 });
 
@@ -154,7 +181,7 @@ router.get("/search", validateMovieQuery, async (req, res) => {
     const key = query.toLowerCase();
     const omdbResponse = await cache.wrap(
       `omdb:search:${key}`,
-      () => omdb.get("/", { params: { s: query, apikey: process.env.OMDB_API_KEY } }),
+      () => askOmdb({ s: query }),
       TTL.search
     );
     const tmdbResponse = await cache.wrap(
@@ -179,7 +206,7 @@ router.get("/search", validateMovieQuery, async (req, res) => {
 
     res.json(combinedSuggestions);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch movie suggestions" });
+    upstreamFailed(res, "Combined search request", error);
   }
 });
 
