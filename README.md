@@ -24,7 +24,7 @@ fetched are identified so they are not mistaken for roots.
 
 Verified against the case most tools get wrong: for Monogatari it returns
 Kizumonogatari, then Nekomonogatari, then Bakemonogatari, where release order
-starts in the wrong place. 14 tests.
+starts in the wrong place. 16 tests.
 
 `movie-review-frontend/src/lib/similarity.js` recommends related series by
 comparing AniList tag profiles, and every suggestion names the tags it was
@@ -115,8 +115,8 @@ everyone for an hour.
 ## Tests
 
 ```bash
-cd movie-review-frontend && npm test    # 149
-cd movie-review-backend  && npm test    # 100
+cd movie-review-frontend && npm test    # 154
+cd movie-review-backend  && npm test    # 101
 ```
 
 The backend suite includes the review API end to end, real HTTP against real

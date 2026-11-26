@@ -110,4 +110,20 @@ describe('drawableFranchise', () => {
     const { drawn } = drawableFranchise(graph, { essential: entries.slice(0, 2), story: entries });
     expect(drawn.edges.map((e) => `${e.from}->${e.to}`)).toEqual(['1->2']);
   });
+
+  it('gives a link the same type whichever end the traversal met first', () => {
+    // Seeded from the other end, the traversal lists the SEQUEL before the
+    // PREQUEL, and the merged arrow used to take whichever came first.
+    const orders = { essential: entries.slice(0, 2), story: entries };
+    const reversed = { edges: [...graph.edges].reverse() };
+    const types = (g) => drawableFranchise(g, orders).drawn.edges.map((e) => e.type);
+    expect(types(reversed)).toEqual(types(graph));
+  });
+
+  it('marks only a prequel released after the entry it precedes', () => {
+    const marked = (spine) => drawableFranchise(graph, { essential: spine, story: spine }).drawn.edges[0].backwards;
+    expect(marked([{ id: 1, startDate: { year: 2016 } }, { id: 2, startDate: { year: 2009 } }])).toBe(true);
+    expect(marked([{ id: 1, startDate: { year: 2009 } }, { id: 2, startDate: { year: 2012 } }])).toBe(false);
+    expect(marked(entries.slice(0, 2))).toBe(false);
+  });
 });

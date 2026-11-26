@@ -118,7 +118,7 @@ Both the Firebase credential and the Mongo connection previously called `process
 | `MONGO_URI` | Logged, not fatal; mongoose retries | Reviews unavailable; a late database recovers without a redeploy |
 | `CORS_ORIGINS` | Falls back to a default allowlist | Localhost permitted outside production |
 
-`GET /health` returns 200 when every subsystem is up and 503 with the specific fault named otherwise, so a bad deploy is one request to diagnose rather than a scroll through logs.
+`GET /health` returns 200 when every subsystem is up and 503 otherwise, naming which subsystem is down and its state; the reason goes to the server log, not the public response, because a database error can name the cluster.
 
 **AniList is proxied, not called from the browser.** It rate-limits per client IP; from the browser the client is the visitor, and the refusal arrives as an opaque CORS error because a 429 carries no CORS headers. Proxied, it is one budget, cached for an hour across all viewers, and only three named operations are forwarded so the server is not an open GraphQL relay.
 
@@ -126,7 +126,7 @@ Both the Firebase credential and the Mongo connection previously called `process
 
 ## 6. Quality Assurance
 
-**249 automated tests**: 149 frontend (Vitest), 100 backend (`node:test`).
+**255 automated tests**: 154 frontend (Vitest), 101 backend (`node:test`).
 
 The backend suite includes the review API end to end, real HTTP against real handlers and real Mongoose on an in-memory MongoDB, with only Firebase stubbed. It requires no keys and nothing provisioned.
 

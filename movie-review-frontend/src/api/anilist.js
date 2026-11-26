@@ -29,7 +29,10 @@ async function query(operation, variables, { retried = false } = {}) {
     return data.data;
   } catch (error) {
     if (error.response?.status === 429) {
-      throw visitorError('AniList is rate-limiting us. Try again in a moment.');
+      throw Object.assign(
+        visitorError('AniList is rate-limiting us. Try again in a moment.'),
+        { rateLimited: true }
+      );
     }
 
     // A sleeping instance is not a broken feature. Start it, wait, try once
@@ -110,12 +113,16 @@ export async function fetchEntry(id) {
 
   const promise = query('entry', { id })
     .then((data) => toEntry(data.Media))
-    .catch(() => {
+    .catch((error) => {
       // A missing entry must not abort the whole traversal, so this resolves
       // to null rather than rejecting. But the null is not cached: a failure
       // is usually the server being asleep, and caching it meant the same
       // entries stayed empty after it woke, until the page was reloaded.
       cache.delete(id);
+      // Except a rate limit, which does abort it. Every later fetch in the
+      // window is refused too, and as nulls the refusals were reported as
+      // entries AniList could not supply, with a retry that kept failing.
+      if (error.rateLimited) throw error;
       return null;
     });
 

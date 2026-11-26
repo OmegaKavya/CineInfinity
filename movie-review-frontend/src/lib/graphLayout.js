@@ -119,6 +119,14 @@ export function dependencyEdge(edge) {
 }
 
 /**
+ * When both ends state a link, the statement that names the merged arrow.
+ * Fixed rather than whichever came first: the traversal meets either end
+ * first depending on the seed, so the same link was drawn differently from
+ * one franchise page to the next.
+ */
+const TYPE_RANK = ['SEQUEL', 'PREQUEL', 'SIDE_STORY'];
+
+/**
  * What to draw for a resolved franchise: the essential entries (or the whole
  * story order when nothing is essential) and the dependency edges between
  * them, laid out. Recaps and promos triple the node count and say nothing
@@ -127,20 +135,30 @@ export function dependencyEdge(edge) {
 export function drawableFranchise(graph, orders) {
   const spine = orders.essential.length ? orders.essential : orders.story;
   const keep = new Set(spine.map((e) => e.id));
+  const year = new Map(spine.map((e) => [e.id, e.startDate?.year]));
   // AniList states each link from both ends: A names B as its SEQUEL and B
   // names A as its PREQUEL. Once the PREQUEL is flipped the two are the same
   // arrow, and drawing both stacked two on every spine link and doubled the
   // edge count in the caption.
-  const seen = new Set();
-  const edges = graph.edges
-    .filter((e) => keep.has(e.from) && keep.has(e.to))
-    .map(dependencyEdge)
-    .filter((e) => {
-      if (!e) return false;
-      const key = `${e.from}->${e.to}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  const merged = new Map();
+  for (const relation of graph.edges) {
+    if (!keep.has(relation.from) || !keep.has(relation.to)) continue;
+    const edge = dependencyEdge(relation);
+    if (!edge) continue;
+    const key = `${edge.from}->${edge.to}`;
+    const held = merged.get(key);
+    if (!held || TYPE_RANK.indexOf(edge.type) < TYPE_RANK.indexOf(held.type)) {
+      merged.set(key, edge);
+    }
+  }
+  const edges = [...merged.values()].map((edge) => ({
+    ...edge,
+    // A prequel released after the entry it leads into, so the arrow points
+    // forwards while the years run backwards: the case the page is about.
+    // Every link is a PREQUEL from one end and a SEQUEL from the other, so
+    // the relation type cannot single these out; the years can. An unknown
+    // year compares false either way, so it is never marked.
+    backwards: year.get(edge.from) > year.get(edge.to),
+  }));
   return { spine, keep, drawn: layout(spine, edges) };
 }

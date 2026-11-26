@@ -51,7 +51,16 @@ describe('readableError', () => {
     spy.mockRestore();
   });
 
-  it('explains a 503 as the server starting, not as a generic failure', () => {
+  it('asks for a fresh sign-in when Firebase cannot refresh the token', () => {
+    const firebase = (code) => Object.assign(new Error(`Firebase: Error (${code}).`), { code });
+    expect(readableError(firebase('auth/user-token-expired'), 'Could not post that review.'))
+      .toBe('You need to sign in again to do that.');
+    // Offline, signing in again would fail as well.
+    expect(readableError(firebase('auth/network-request-failed'), 'Could not post that review.'))
+      .toMatch(/check your connection/i);
+  });
+
+    it('explains a 503 as the server starting, not as a generic failure', () => {
     expect(readableError({ isAxiosError: true, response: { status: 503, data: {} } }))
       .toMatch(/starting up/i);
   });
@@ -75,6 +84,28 @@ describe('fetchEntry', () => {
     const second = await fetchEntry(7);
     expect(second).not.toBeNull();
     expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops a traversal at a rate limit and says so, rather than listing entries as failed', async () => {
+    vi.resetModules();
+    // Our own limiter's 429 partway through: the seed loads, its sequel is refused.
+    const post = vi.fn(async (_url, { variables }) => {
+      if (variables.id !== 1) {
+        throw { isAxiosError: true, response: { status: 429, data: { error: 'Too many requests. Please try again shortly.' } } };
+      }
+      return { data: { data: { Media: {
+        id: 1, title: { english: 'One' }, format: 'TV',
+        relations: { edges: [{ relationType: 'SEQUEL', node: { id: 2, type: 'ANIME' } }] },
+      } } } };
+    });
+    vi.doMock('../client', async (importOriginal) => ({ ...(await importOriginal()), api: { post } }));
+    const { fetchEntry } = await import('../anilist');
+    const { collectFranchise } = await import('../../lib/franchiseGraph');
+
+    const error = await collectFranchise(1, fetchEntry).catch((e) => e);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.forVisitor).toBe(true);
+    expect(error.message).toMatch(/rate-limiting/);
   });
 });
 

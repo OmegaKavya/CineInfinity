@@ -46,7 +46,7 @@ export default function FranchiseGraph({ drawn, onSelect }) {
           const y2 = y(edge.target) + NODE_H / 2;
           const mid = (x1 + x2) / 2;
           return (
-            <g key={i} className={`fgraph__edge is-${(edge.type || '').toLowerCase()}`}>
+            <g key={i} className={`fgraph__edge is-${(edge.type || '').toLowerCase()}${edge.backwards ? ' is-backwards' : ''}`}>
               <path
                 d={`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`}
                 fill="none"

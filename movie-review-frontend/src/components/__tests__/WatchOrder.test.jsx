@@ -64,4 +64,20 @@ describe('WatchOrder', () => {
     expect(alert).toHaveTextContent('Could not work out the order.');
     expect(alert).not.toHaveTextContent(/not iterable/);
   });
+
+  it('colours the arrow of a prequel released after the series it precedes', async () => {
+    const late = {
+      1: { id: 1, title: 'Series', format: 'TV', startDate: { year: 2009 },
+           relations: [{ id: 2, relationType: 'PREQUEL', type: 'ANIME' }] },
+      2: { id: 2, title: 'Prequel', format: 'TV', startDate: { year: 2016 },
+           relations: [{ id: 1, relationType: 'SEQUEL', type: 'ANIME' }] },
+    };
+    fetchEntry.mockImplementation(async (id) => late[id]);
+    const { container } = open();
+
+    await userEvent.click(await screen.findByRole('tab', { name: 'Graph' }));
+    await screen.findByRole('img', { name: /Dependency graph/ });
+    expect(container.querySelectorAll('.fgraph__edge')).toHaveLength(1);
+    expect(container.querySelectorAll('.fgraph__edge.is-backwards')).toHaveLength(1);
+  });
 });

@@ -117,6 +117,14 @@ export function readableError(error, fallback = 'Something went wrong.') {
     return 'The server took too long to respond. It may be waking up - try again in a moment.';
   }
   if (!error?.response) {
+    // Firebase, from getIdToken in authHeaders, when the session can no
+    // longer be refreshed. Its message is a raw code, but the remedy is
+    // the visitor's to take. Except offline, where signing in again fails too.
+    if (typeof error?.code === 'string' && error.code.startsWith('auth/')) {
+      return error.code === 'auth/network-request-failed'
+        ? 'Could not confirm your sign-in. Check your connection and try again.'
+        : 'You need to sign in again to do that.';
+    }
     // Not an HTTP failure at all, so a fault in our own code. Its message
     // is for a developer, not for the visitor.
     if (!error?.isAxiosError) return fallback;

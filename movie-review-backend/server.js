@@ -118,16 +118,16 @@ app.get("/health", (_req, res) => {
 
   // Degraded, not down. The server is serving; one subsystem is not. The
   // body names which, so a failing deploy can be diagnosed from one curl
-  // instead of from scrollback.
+  // instead of from scrollback. Only its state, though: this route is public,
+  // and the driver and credential errors it used to carry described our
+  // configuration to anyone who asked. Both are logged where they occur.
   const healthy = dbReady && !firebaseFault;
 
   res.status(healthy ? 200 : 503).json({
     status: healthy ? "ok" : "degraded",
     uptimeSeconds: Math.round(process.uptime()),
     database: dbState,
-    databaseError: dbReady ? null : databaseError,
     auth: firebaseFault ? "unavailable" : "ok",
-    authError: firebaseFault ? firebaseFault.message : null,
     upstreamCache: movieRoutes.cacheStats ? movieRoutes.cacheStats() : null,
     anilistCache: anilistCache.stats(),
   });
@@ -156,14 +156,11 @@ app.use((err, _req, res, _next) => {
 // marked failed, a notification goes out, and the logs show only the driver
 // error with no indication of which setting is wrong.
 //
-// So a failure is recorded instead of fatal. The server still binds, /health
-// reports "degraded" with the reason, and mongoose retries in the
+// So a failure is logged instead of fatal. The server still binds, /health
+// reports "degraded" and which subsystem, and mongoose retries in the
 // background, which means a database that comes up late recovers on its own
 // rather than needing a manual redeploy.
-let databaseError = null;
-
 if (!process.env.MONGO_URI) {
-  databaseError = "MONGO_URI is not set.";
   console.error(
     "MONGO_URI is not set, so reviews are unavailable. Film browsing and " +
       "search are unaffected."
@@ -172,11 +169,9 @@ if (!process.env.MONGO_URI) {
   mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
-      databaseError = null;
       console.log("MongoDB connected");
     })
     .catch((err) => {
-      databaseError = err.message;
       console.error("MongoDB connection failed:", err.message);
     });
 }
@@ -186,7 +181,7 @@ if (!process.env.MONGO_URI) {
 // Listening is unconditional and happens regardless of the database or the
 // Firebase credential. A host that waits for a port and never sees one fails
 // the deploy without ever reporting the real cause; binding first means the
-// fault shows up in /health, where it names itself.
+// fault shows up in /health and the log, where it names itself.
 //
 // Only when run directly (`node server.js`, which is what Render runs), so a
 // test can require the app and bind it to a free port of its own.
